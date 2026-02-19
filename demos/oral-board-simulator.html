@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAET Oral Board Simulator</title>
+<style>
+@keyframes scanline{0%{top:-100%}100%{top:100%}}
+@keyframes flicker{0%,100%{opacity:1}50%{opacity:.97}}
+@keyframes glow{0%,100%{text-shadow:0 0 10px currentColor}50%{text-shadow:0 0 20px currentColor,0 0 40px currentColor}}
+@keyframes slideIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a12;--neon-cyan:#00fff5;--neon-mag:#ff2d95;--neon-yel:#ffe600;--neon-grn:#39ff14;--neon-red:#ff073a;--neon-pur:#b44dff;--card:#0f0f1e;--border:#1a1a30}
+body{font-family:'Courier New',monospace;background:var(--bg);color:#d0d0d0;min-height:100vh;overflow-x:hidden;animation:flicker 4s infinite}
+body::after{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px);pointer-events:none;z-index:9999}
+.scanline{position:fixed;top:-100%;left:0;width:100%;height:60%;background:linear-gradient(transparent,rgba(0,255,245,.03),transparent);pointer-events:none;z-index:9998;animation:scanline 8s linear infinite}
+.header{background:linear-gradient(180deg,#0f0f1e,var(--bg));padding:20px;text-align:center;border-bottom:2px solid var(--neon-cyan)}
+.header h1{font-size:2em;color:var(--neon-cyan);animation:glow 3s infinite;letter-spacing:4px;text-transform:uppercase}
+.header .sub{color:var(--neon-mag);font-size:.85em;margin-top:4px;letter-spacing:2px}
+.controls{display:flex;justify-content:center;gap:12px;padding:16px;flex-wrap:wrap}
+.diff-btn{padding:10px 24px;border:2px solid var(--border);background:var(--card);color:#888;font-family:inherit;font-size:.9em;cursor:pointer;border-radius:4px;text-transform:uppercase;letter-spacing:1px;transition:.2s}
+.diff-btn.active{border-color:var(--neon-cyan);color:var(--neon-cyan);box-shadow:0 0 10px rgba(0,255,245,.3)}
+.diff-btn:hover{border-color:var(--neon-mag)}
+.cat-bar{display:flex;gap:6px;padding:8px 16px;overflow-x:auto;justify-content:center;flex-wrap:wrap}
+.cat-tag{padding:6px 12px;background:var(--card);border:1px solid var(--border);border-radius:4px;font-size:.75em;color:#666;cursor:pointer;white-space:nowrap;transition:.2s}
+.cat-tag.active{color:var(--neon-yel);border-color:var(--neon-yel)}
+.cat-tag .count{color:var(--neon-mag);margin-left:4px}
+.main{max-width:900px;margin:0 auto;padding:16px}
+.q-counter{text-align:center;color:var(--neon-pur);font-size:.9em;margin-bottom:12px;letter-spacing:2px}
+.scenario{background:var(--card);border:2px solid var(--border);border-radius:8px;padding:24px;margin-bottom:16px;animation:slideIn .4s}
+.scenario .cat{color:var(--neon-yel);font-size:.8em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.scenario .diff-tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:.7em;margin-left:8px}
+.diff-tag.beginner{background:#1b3a1b;color:var(--neon-grn)}
+.diff-tag.intermediate{background:#3a3a1b;color:var(--neon-yel)}
+.diff-tag.advanced{background:#3a1b1b;color:var(--neon-red)}
+.scenario h3{color:var(--neon-cyan);font-size:1.1em;margin-bottom:12px;line-height:1.5}
+.options{display:grid;gap:10px;margin-top:16px}
+.opt{padding:14px 18px;background:#0a0a18;border:2px solid var(--border);border-radius:6px;cursor:pointer;transition:.2s;line-height:1.4;font-family:inherit;font-size:.9em;color:#ccc;text-align:left}
+.opt:hover{border-color:var(--neon-cyan);background:#0d0d22}
+.opt.selected{border-color:var(--neon-cyan);background:#0d1a22}
+.opt.excellent{border-color:var(--neon-grn);background:#0a1a0a;color:var(--neon-grn)}
+.opt.good{border-color:var(--neon-cyan);background:#0a1520;color:var(--neon-cyan)}
+.opt.mediocre{border-color:var(--neon-yel);background:#1a1a0a;color:var(--neon-yel)}
+.opt.wrong{border-color:var(--neon-red);background:#1a0a0a;color:var(--neon-red)}
+.opt .grade{font-size:.75em;text-transform:uppercase;letter-spacing:1px;margin-top:4px;opacity:0}
+.opt.revealed .grade{opacity:1}
+.feedback{background:#0a0f1a;border:2px solid var(--neon-pur);border-radius:8px;padding:18px;margin-top:16px;display:none;animation:slideIn .3s}
+.feedback.show{display:block}
+.feedback h4{color:var(--neon-pur);margin-bottom:8px}
+.feedback p{line-height:1.5;font-size:.9em;color:#aaa}
+.rubric{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:14px}
+.rubric-item{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center}
+.rubric-item .name{font-size:.7em;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.rubric-item .score{font-size:1.5em;font-weight:900}
+.score.s5{color:var(--neon-grn)}.score.s4{color:var(--neon-cyan)}.score.s3{color:var(--neon-yel)}.score.s2{color:orange}.score.s1{color:var(--neon-red)}
+.nav-btns{display:flex;justify-content:center;gap:16px;margin-top:20px}
+.nav-btn{padding:12px 32px;border:2px solid var(--neon-cyan);background:transparent;color:var(--neon-cyan);font-family:inherit;font-size:1em;cursor:pointer;border-radius:4px;letter-spacing:1px;transition:.2s}
+.nav-btn:hover{background:var(--neon-cyan);color:var(--bg)}
+.nav-btn:disabled{opacity:.3;cursor:default}
+.nav-btn.finish{border-color:var(--neon-mag);color:var(--neon-mag)}
+.nav-btn.finish:hover{background:var(--neon-mag);color:var(--bg)}
+
+/* Results */
+.results{display:none;max-width:900px;margin:0 auto;padding:20px;animation:slideIn .5s}
+.results.show{display:block}
+.results h2{text-align:center;color:var(--neon-cyan);font-size:1.8em;animation:glow 3s infinite;margin-bottom:20px}
+.total-score{text-align:center;font-size:3em;font-weight:900;margin:16px 0}
+.radar{display:flex;justify-content:center;margin:20px 0}
+.radar-chart{width:320px;height:320px;position:relative}
+.radar-bg{position:absolute;inset:0}
+.cat-scores{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.cat-score{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;display:flex;justify-content:space-between;align-items:center}
+.cat-score .name{font-size:.85em;color:#aaa}
+.cat-score .bar{flex:1;height:8px;background:#1a1a30;border-radius:4px;margin:0 12px;overflow:hidden}
+.cat-score .fill{height:100%;border-radius:4px}
+.restart-btn{display:block;margin:24px auto;padding:14px 40px;border:2px solid var(--neon-mag);background:transparent;color:var(--neon-mag);font-family:inherit;font-size:1.1em;cursor:pointer;border-radius:4px;letter-spacing:2px}
+.restart-btn:hover{background:var(--neon-mag);color:var(--bg)}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+<div class="header">
+<h1>⚡ Oral Board Simulator ⚡</h1>
+<div class="sub">CAET Advanced Certification — Scenario-Based Prep</div>
+</div>
+
+<div id="quizSection">
+<div class="controls">
+<button class="diff-btn active" onclick="setDiff('all')">ALL</button>
+<button class="diff-btn" onclick="setDiff('beginner')">BEGINNER</button>
+<button class="diff-btn" onclick="setDiff('intermediate')">INTERMEDIATE</button>
+<button class="diff-btn" onclick="setDiff('advanced')">ADVANCED</button>
+</div>
+<div class="cat-bar" id="catBar"></div>
+<div class="main" id="quizMain"></div>
+</div>
+
+<div class="results" id="resultsSection">
+<h2>⚡ EVALUATION COMPLETE ⚡</h2>
+<div class="total-score" id="totalScore"></div>
+<p style="text-align:center;color:#888;margin-bottom:20px">Category Performance</p>
+<div class="cat-scores" id="catScores"></div>
+<canvas id="radarCanvas" width="340" height="340" style="display:block;margin:20px auto"></canvas>
+<button class="restart-btn" onclick="restart()">► RESTART</button>
+</div>
+
+<script>
+const Q=[
+{cat:"Pitot-Static",diff:"intermediate",q:"An altimeter reads 40 feet high on the ground after a static system check passes within tolerance. The aircraft has a new encoder installed. What is your troubleshooting approach?",
+opts:[
+{t:"Verify encoder altitude output against a known reference. Check for a static port position error or partial blockage that's within tolerance but biased. Compare altimeter with an independent reference. Document findings before adjusting.",g:"excellent",s:[5,5,4,5,5]},
+{t:"Check the altimeter setting and Kollsman window. Verify the static system hasn't developed a small leak that passed the decay test but still introduces error. Re-run the static check.",g:"good",s:[4,4,4,4,4]},
+{t:"Adjust the altimeter correction card to account for the 40-foot error since it passed the static check.",g:"mediocre",s:[2,2,3,2,3]},
+{t:"Replace the altimeter — 40 feet off means it's bad.",g:"wrong",s:[1,1,2,1,2]}
+],fb:"The key insight is that a static system can pass the 14 CFR 43 Appendix E leak test while still having a consistent bias. Position error from the static port location, a partial blockage, or encoder calibration issues should all be investigated before condemning components."},
+
+{cat:"Pitot-Static",diff:"advanced",q:"After a static port replacement, the altimeter works fine on the ground but you get reports of intermittent altitude fluctuations of ±200 feet at cruise. What's your analysis?",
+opts:[
+{t:"Suspect the static port location or flush-mount quality is creating aerodynamic turbulence at cruise speeds. Inspect the port installation for flush alignment, sealant intrusion, or burrs. May need to flight test with a reference and evaluate port position error at various speeds/altitudes.",g:"excellent",s:[5,5,5,5,5]},
+{t:"Check the static line routing for any kinks or proximity to heating ducts that could cause temperature-related pressure fluctuations. Verify all connections are secure and there's no intermittent leak.",g:"good",s:[4,4,4,3,4]},
+{t:"The altimeter is probably going bad under temperature changes at altitude. Replace it.",g:"mediocre",s:[2,1,3,2,3]},
+{t:"Run another static check on the ground. If it passes, the system is fine — probably just turbulence.",g:"wrong",s:[1,1,2,2,2]}
+],fb:"Intermittent issues only at cruise speed strongly point to aerodynamic interference at the static port. Port installation quality — flush mounting, burrs, sealant — directly affects static pressure accuracy at speed. Ground checks won't reveal speed-dependent position errors."},
+
+{cat:"Surveillance",diff:"intermediate",q:"A Mode A/C transponder check passes perfectly — correct codes, altitude reporting verified. But the ADS-B performance monitor shows the aircraft is failing ADS-B Out. What's the issue?",
+opts:[
+{t:"ADS-B Out requires a compliant 1090ES or UAT transmitter with GPS position source meeting TSO-C166b/C154c. Mode A/C transponder replies don't satisfy ADS-B. Check if the aircraft has a separate ADS-B Out solution or if the transponder is ES-capable but GPS source isn't connected or configured.",g:"excellent",s:[5,5,4,5,5]},
+{t:"The transponder might need a software update to enable Extended Squitter. Check the transponder model against the ADS-B equipment list and verify GPS input.",g:"good",s:[4,4,3,4,4]},
+{t:"Re-run the transponder test with the ADS-B function enabled. Probably a test set configuration issue.",g:"mediocre",s:[2,2,3,3,3]},
+{t:"ADS-B is separate from the transponder — it's probably an antenna problem.",g:"wrong",s:[1,1,2,2,2]}
+],fb:"ADS-B Out compliance requires Extended Squitter (1090ES) or UAT with a qualifying GPS position source. A transponder passing Mode A/C doesn't mean ADS-B Out is working. The GPS source, its integrity output (SIL/SDA), and the transponder's ES capability are all separate requirements."},
+
+{cat:"Surveillance",diff:"advanced",q:"A pilot reports XPDR FAIL annunciation, but only above FL180. Below that altitude, the transponder works fine. All ground tests pass. What's happening?",
+opts:[
+{t:"At FL180+, ATC interrogation patterns change and TCAS interrogation density increases. The transponder may be thermally marginal — as the aircraft climbs, lower ambient temp affects avionics bay differently, or reduced air pressure affects cooling. Also check if the aircraft has a pressurization issue affecting the avionics bay, or if the XPDR FAIL is actually triggered by the connected systems (GPS, air data) rather than the transponder itself.",g:"excellent",s:[5,5,5,4,5]},
+{t:"Could be an altitude-dependent antenna pattern issue. Check the antenna installation and cable for damage that might cause signal degradation. At FL180+, ATC radar sites are farther away and signal strength matters more.",g:"good",s:[4,4,3,3,4]},
+{t:"The transponder probably has an intermittent component that fails with temperature. Replace it.",g:"mediocre",s:[2,2,3,2,3]},
+{t:"FL180 means RVSM airspace — that has different transponder requirements. Need an RVSM-compliant unit.",g:"wrong",s:[1,1,2,2,2]}
+],fb:"Altitude-dependent failures require systematic analysis. Thermal effects, pressurization changes, interrogation environment differences, and connected system behavior all change with altitude. RVSM begins at FL290, not FL180. The key is identifying what changes at that specific altitude threshold."},
+
+{cat:"Autopilot",diff:"intermediate",q:"After replacing an autopilot pitch servo, the aircraft exhibits a continuous nose-down trim condition in autopilot. Manual flight is normal. What's your approach?",
+opts:[
+{t:"Verify servo rigging per the installation manual — the servo arm may be clocked incorrectly or the cable tension is off, creating a mechanical bias. Check the servo clutch torque setting. Verify the AP computer's trim sensor input to rule out an electrical offset. Perform a ground operational check including null/centering verification.",g:"excellent",s:[5,5,4,5,5]},
+{t:"Check the trim motor direction — it might be wired in reverse, commanding nose-down when it should command nose-up. Verify the servo phasing and bridle cable routing.",g:"good",s:[4,4,4,4,4]},
+{t:"The new servo probably has different gain characteristics. Adjust the AP computer's pitch gain to compensate.",g:"mediocre",s:[2,2,3,2,3]},
+{t:"It's a new servo — send it back as defective and try another one.",g:"wrong",s:[1,1,2,1,2]}
+],fb:"A nose-down trim condition after servo replacement almost always points to rigging, mechanical alignment, or wiring issues — not a defective servo. The servo arm clock position, cable tension, clutch torque, and phasing should all be verified against the installation manual before suspecting the component."},
+
+{cat:"Autopilot",diff:"advanced",q:"An autopilot holds heading perfectly but will not track a GPS course. It was working before a GPS software update. NAV tracking on VOR works fine. What's your analysis?",
+opts:[
+{t:"The GPS software update may have changed the CDI output scaling, deviation sensitivity, or the serial data format/labels on the flight plan output. Check if the AP interface requires specific ARINC 429 labels or analog CDI scaling that changed with the update. Verify the GPS steering output configuration (GPSS vs. CDI-coupled). Review the GPS software release notes for known AP interface changes.",g:"excellent",s:[5,5,4,5,5]},
+{t:"Check the GPS configuration settings — the update may have reset the CDI output from GPS to VLOC mode, or changed the CDI scaling from ±5nm to ±1nm. Verify the AP is receiving valid course deviation.",g:"good",s:[4,4,3,4,4]},
+{t:"Probably a software bug in the update. Roll back to the previous version.",g:"mediocre",s:[2,2,3,3,3]},
+{t:"If heading works and VOR works, the AP is fine. The GPS unit is defective after the update.",g:"wrong",s:[1,1,2,2,2]}
+],fb:"Software updates can change data output formats, scaling, and interface behavior. The fact that VOR tracking works confirms the AP's analog CDI input path is functional. GPS course tracking typically uses either digital (ARINC 429) steering commands or different CDI scaling, which may have changed with the update."},
+
+{cat:"FMS",diff:"intermediate",q:"A GTN 750Xi won't accept a new navigation database. It shows 'Database Error' during the upload. The database file was purchased and downloaded correctly. What do you check?",
+opts:[
+{t:"Verify the database is for the correct unit (750Xi, not 750). Check the SD card format — must be FAT32, not exFAT. Confirm the file structure matches Garmin's required directory layout. Check if there's a minimum software version required for the new database cycle. Try reformatting the card and re-downloading the database.",g:"excellent",s:[5,5,3,4,5]},
+{t:"The SD card might be corrupted. Try a different card. Also check if the unit's internal software needs to be updated before it can accept the new database format.",g:"good",s:[4,3,3,3,4]},
+{t:"Contact Garmin support — their database file is probably corrupt.",g:"mediocre",s:[2,1,2,2,3]},
+{t:"The unit's database receiver is failing. It needs to go to the bench.",g:"wrong",s:[1,1,2,1,2]}
+],fb:"Database loading issues are almost always media format, file structure, or compatibility problems — not hardware. The GTN 750Xi requires specific SD card formatting (FAT32), correct directory structure, and may require minimum software versions for newer database cycles."},
+
+{cat:"FMS",diff:"advanced",q:"After a GPS antenna replacement (same part number), a GTN 650Xi shows significantly degraded satellite geometry and frequent 'GPS Integrity' warnings, despite tracking 8+ satellites. What's going on?",
+opts:[
+{t:"Even with the same P/N, antenna installation variables matter: ground plane size and material, coax cable length and quality, mounting orientation, and nearby reflective surfaces affecting multipath. Check the antenna ground plane meets the installation manual requirements. Verify coax cable loss hasn't increased (damaged during installation). Check for multipath sources — new metal structures near the antenna. The antenna may track satellites but with degraded signal quality affecting position accuracy.",g:"excellent",s:[5,5,4,5,5]},
+{t:"Check the coax cable connector — a poor connection can reduce signal strength enough to track satellites but with degraded accuracy. Verify the antenna is oriented correctly (right-side up).",g:"good",s:[4,4,4,3,4]},
+{t:"8+ satellites with integrity warnings means the antenna is probably defective even though it's the right part number. Swap it.",g:"mediocre",s:[2,2,3,2,3]},
+{t:"It's a software issue — reset the GPS to factory defaults to clear the old antenna's calibration data.",g:"wrong",s:[1,1,2,1,2]}
+],fb:"GPS integrity depends on signal quality, not just satellite count. Ground plane characteristics, coax loss, multipath reflections, and installation geometry all affect position accuracy. Tracking satellites with poor signal quality produces the exact symptom described — visible satellites but degraded integrity."},
+
+{cat:"Audio/Comm",diff:"intermediate",q:"COM1 transmits fine (confirmed by other aircraft hearing transmissions), but the pilot has no sidetone. COM2 works normally with sidetone. Audio panel functions appear normal otherwise. What's your approach?",
+opts:[
+{t:"Sidetone is typically generated by the audio panel, not the comm radio. Check the audio panel's COM1 sidetone level setting — some panels have individual sidetone adjustments per radio. Verify the wiring between COM1's TX audio output and the audio panel's sidetone input. Check if a recent audio panel software update changed sidetone routing. Could also be a connector pin issue on the audio panel's COM1 interface.",g:"excellent",s:[5,5,4,4,5]},
+{t:"Check the audio panel configuration for COM1 sidetone enable/disable. Some panels allow individual sidetone control. If it has a menu system, look for COM1-specific settings.",g:"good",s:[4,3,3,3,4]},
+{t:"The COM1 radio's sidetone output is bad. Replace or bench-check the radio.",g:"mediocre",s:[2,2,3,2,3]},
+{t:"It's a headset issue — try a different headset.",g:"wrong",s:[1,1,2,1,2]}
+],fb:"Since COM2 sidetone works, the headset and audio panel output path are functional. Sidetone is routed through the audio panel, which mixes TX audio back to the headset. The issue is specific to COM1's sidetone path — either the audio panel configuration, the wiring between COM1 and the audio panel's sidetone input, or the audio panel's COM1 channel processing."},
+
+{cat:"Wire Harness",diff:"intermediate",q:"You're routing a new wire harness and the planned path runs within 2 inches of a fuel line. What are your considerations?",
+opts:[
+{t:"Per AC 43.13-1B, maintain minimum separation from fuel lines — route wiring above fuel lines where possible so a failure drips away from fuel. If crossing is necessary, cross at 90° with a physical barrier or additional protection (conduit). Use fire-resistant or fireproof wire insulation in the area. Ensure wire bundle is clamped independently from fuel line — no shared clamps. Consider chafing protection at any potential contact points. Document the routing decision.",g:"excellent",s:[5,4,5,5,5]},
+{t:"Keep the wiring above the fuel line and add conduit protection where they're close. Use separate clamps and maintain at least the minimum separation specified in AC 43.13.",g:"good",s:[4,3,5,4,4]},
+{t:"Use extra wire ties to keep the harness tight to the structure and away from the fuel line. Add some spiral wrap for protection.",g:"mediocre",s:[2,2,3,2,3]},
+{t:"2 inches is plenty of clearance. Just secure the harness normally and move on.",g:"wrong",s:[1,1,1,1,2]}
+],fb:"Wire routing near fuel lines is a critical safety consideration. AC 43.13-1B provides specific guidance: route above fuel lines, cross at right angles, maintain separation, use independent clamping, and add protection. The goal is ensuring an electrical failure cannot become an ignition source near fuel."},
+
+{cat:"Wire Harness",diff:"advanced",q:"During an inspection, you find that a previous shop used non-aviation grade wire (commercial MIL-W-22759 equivalent, not actual MIL-spec) on a new avionics install. The aircraft is due to fly tomorrow. What do you do?",
+opts:[
+{t:"This is an airworthiness issue. Non-aviation grade wire may not meet the flame resistance, insulation temperature, and durability requirements of MIL-W-22759 or the aircraft's Type Certificate. You cannot approve the aircraft for return to service with unapproved materials. Ground the aircraft, document the finding, and notify the owner immediately. Plan replacement with proper MIL-spec wire. This is a mandatory fix — no shortcuts.",g:"excellent",s:[5,4,5,5,5]},
+{t:"Check the wire specifications against the aircraft's maintenance manual requirements. If the commercial wire doesn't meet the required specs, it needs to be replaced before flight. Inform the owner of the delay.",g:"good",s:[4,3,4,4,4]},
+{t:"If the wire has been in there and working fine, note it as a discrepancy for next scheduled maintenance but let it fly for now.",g:"mediocre",s:[1,1,1,2,3]},
+{t:"As long as the gauge is correct and it's working, the wire type doesn't matter that much for avionics.",g:"wrong",s:[1,1,1,1,1]}
+],fb:"Using unapproved materials is an airworthiness issue, period. Commercial 'equivalent' wire may look identical but lack the flame resistance, temperature ratings, and insulation durability required for aircraft use. This is not a 'fix it later' item — it's a ground-the-aircraft item. Safety of flight is non-negotiable."},
+
+{cat:"Software",diff:"advanced",q:"After a G500 TXi software update, the AHRS shows a consistent 3-degree left bank error on the ground. The aircraft is on a known-level surface. Pre-update it was perfect. What's your approach?",
+opts:[
+{t:"Software updates can change AHRS calibration tables or magnetometer compensation values. First, attempt an AHRS realignment/recalibration per the TXi maintenance manual — most Garmin units have a ground alignment procedure. If the error persists, check if the software release notes mention AHRS changes or known issues. Verify the unit's configuration module hasn't been reset to defaults, which could clear installation-specific alignment data. Contact Garmin product support with the specific software version and symptoms.",g:"excellent",s:[5,5,3,4,5]},
+{t:"Re-run the AHRS calibration procedure. The software update probably reset the alignment parameters. Follow the Garmin installation manual calibration steps.",g:"good",s:[4,4,3,3,4]},
+{t:"Roll back to the previous software version since it was working fine before.",g:"mediocre",s:[2,2,3,3,3]},
+{t:"The AHRS module was probably damaged by the update. Replace it.",g:"wrong",s:[1,1,2,1,2]}
+],fb:"Software updates commonly reset calibration data. The AHRS calibration procedure is the first step — it's designed to be re-run after updates. Checking release notes for known issues and verifying configuration data are essential troubleshooting steps before escalating or reverting software."},
+
+{cat:"Documentation",diff:"intermediate",q:"You're completing an ADS-B Out installation using an approved STC. During the paperwork review, you notice the STC's approved model list (AML) doesn't specifically list the antenna model you installed, even though it's a direct replacement for one that is listed. How do you handle this?",
+opts:[
+{t:"Stop — you cannot sign off the installation. The STC's AML is a legal document; only the specific parts listed are approved under that STC. Even if the antenna is a 'direct replacement,' it must be listed on the AML or you need documentation showing it's an approved substitute (like a Garmin service bulletin or STC revision). Contact the STC holder to verify or get an amended AML. Do not return to service until resolved.",g:"excellent",s:[5,3,5,5,5]},
+{t:"Check if the antenna manufacturer has documentation showing the two part numbers are interchangeable. If so, include that documentation in the aircraft records. If not, contact the STC holder for guidance.",g:"good",s:[4,3,4,4,4]},
+{t:"Since it's a direct replacement with the same specs, note the substitution in the maintenance records and sign it off.",g:"mediocre",s:[2,1,2,2,3]},
+{t:"The antenna is just an antenna — it's not a critical STC component. Install it and move on.",g:"wrong",s:[1,1,1,1,1]}
+],fb:"STC compliance is not optional or interpretive. If a part isn't on the Approved Model List, it's not approved under that STC — regardless of how similar it is. The STC holder must verify or amend the AML. Signing off an installation with unapproved parts is a regulatory violation and an airworthiness issue."},
+
+{cat:"Autopilot",diff:"beginner",q:"A pilot reports the autopilot holds heading fine but won't capture or track a VOR course. The VOR receiver checks good on ramp test. What basic checks do you perform?",
+opts:[
+{t:"Verify the NAV source selection — the CDI or HSI must be set to NAV (not GPS) and the correct NAV receiver selected. Check that the autopilot mode is set to NAV, not HDG. Verify the CDI shows proper deflection and the OBS is set to an appropriate course. Check the wiring between the NAV receiver's CDI output and the autopilot coupler. Confirm the AP's NAV mode is engaging (annunciator check).",g:"excellent",s:[5,5,3,4,5]},
+{t:"Check the autopilot mode selection — make sure NAV mode is selected, not HDG. Verify the CDI is getting deviation from the VOR receiver.",g:"good",s:[4,3,3,3,4]},
+{t:"The autopilot's NAV coupling is probably bad. Send it to the bench.",g:"mediocre",s:[2,1,3,2,3]},
+{t:"If heading works, the AP servos are fine. Must be a VOR receiver issue even though it tested good.",g:"wrong",s:[1,1,2,2,2]}
+],fb:"NAV tracking requires the full signal chain: correct source selection, proper mode selection, CDI deviation output from the receiver to the AP coupler, and correct OBS setting. Heading hold uses internal heading reference only — NAV tracking adds the external deviation input. Systematic verification of each link in the chain is the correct approach."},
+
+{cat:"FMS",diff:"beginner",q:"A pilot complains the GTN 750Xi is showing 'NO GPS POSITION' even though it was working yesterday. You see the unit powers up normally. What do you check first?",
+opts:[
+{t:"Start simple: check if the GPS antenna connection is secure — a loose coax connector is the #1 cause. Verify antenna has clear sky view (not in a hangar with metal roof). Check the antenna status page on the GTN for satellite signal levels. Look for any new installations or equipment near the antenna that could cause interference. Verify the antenna coax cable hasn't been damaged by recent maintenance.",g:"excellent",s:[5,5,3,3,5]},
+{t:"Check if the aircraft is in a hangar — GPS needs sky view. If outside, check the antenna connector and coax cable.",g:"good",s:[4,3,3,2,4]},
+{t:"The GPS receiver module in the 750Xi has failed. Send it in for repair.",g:"mediocre",s:[1,1,3,2,3]},
+{t:"Re-load the navigation database — it's probably corrupted and the GPS can't initialize.",g:"wrong",s:[1,1,2,1,2]}
+],fb:"'NO GPS POSITION' means the receiver isn't getting adequate satellite signals. The most common causes are simple: no sky view (hangar), loose antenna connection, or damaged coax. Always check the simple things first — avionics troubleshooting starts with the signal path, not the box."}
+];
+
+const CATS=["Pitot-Static","Surveillance","Autopilot","FMS","Audio/Comm","Wire Harness","Software","Documentation"];
+let curQ=0,answers=[],filtered=Q.slice(),diffFilter='all',catFilter=null;
+
+function init(){buildCatBar();filterAndShow()}
+function buildCatBar(){const bar=document.getElementById('catBar');bar.innerHTML='';CATS.forEach(c=>{const n=Q.filter(q=>q.cat===c).length;const d=document.createElement('div');d.className='cat-tag'+(catFilter===c?' active':'');d.innerHTML=c+'<span class="count">'+n+'</span>';d.onclick=()=>{catFilter=catFilter===c?null:c;buildCatBar();filterAndShow()};bar.appendChild(d)})}
+function setDiff(d){diffFilter=d;document.querySelectorAll('.diff-btn').forEach(b=>b.classList.toggle('active',b.textContent.toLowerCase()===d));filterAndShow()}
+function filterAndShow(){filtered=Q.filter(q=>(diffFilter==='all'||q.diff===diffFilter)&&(!catFilter||q.cat===catFilter));curQ=0;answers=new Array(filtered.length).fill(null);renderQ()}
+function renderQ(){const m=document.getElementById('quizMain');if(!filtered.length){m.innerHTML='<p style="text-align:center;color:#666;padding:40px">No questions match current filters.</p>';return}
+const q=filtered[curQ];const answered=answers[curQ]!==null;
+let h='<div class="q-counter">QUESTION '+(curQ+1)+' / '+filtered.length+'</div>';
+h+='<div class="scenario"><div class="cat">'+q.cat+' <span class="diff-tag '+q.diff+'">'+q.diff.toUpperCase()+'</span></div>';
+h+='<h3>'+q.q+'</h3><div class="options">';
+q.opts.forEach((o,i)=>{let cls='opt';if(answered){cls+=' revealed '+o.g;if(i===answers[curQ])cls+=' selected'}
+h+='<div class="'+cls+'" onclick="pick('+i+')">'+o.t+'<div class="grade">► '+o.g.toUpperCase()+'</div></div>'});
+h+='</div></div>';
+h+='<div class="feedback'+(answered?' show':'')+'"><h4>📋 Evaluator Feedback</h4><p>'+q.fb+'</p>';
+if(answered){const s=q.opts[answers[curQ]].s;const names=['Technical Accuracy','Troubleshooting Logic','Safety','Regulatory Knowledge','Communication'];
+h+='<div class="rubric">';names.forEach((n,i)=>{h+='<div class="rubric-item"><div class="name">'+n+'</div><div class="score s'+s[i]+'">'+s[i]+'/5</div></div>'});
+h+='</div>'}h+='</div>';
+h+='<div class="nav-btns">';
+h+='<button class="nav-btn" onclick="nav(-1)"'+(curQ===0?' disabled':'')+'>◄ PREV</button>';
+if(curQ<filtered.length-1)h+='<button class="nav-btn" onclick="nav(1)">NEXT ►</button>';
+else h+='<button class="nav-btn finish" onclick="showResults()">FINISH ⚡</button>';
+h+='</div>';m.innerHTML=h}
+function pick(i){if(answers[curQ]!==null)return;answers[curQ]=i;renderQ()}
+function nav(d){curQ+=d;renderQ();window.scrollTo(0,0)}
+function showResults(){document.getElementById('quizSection').classList.add('hidden');const rs=document.getElementById('resultsSection');rs.classList.add('show');
+let totalPts=0,totalMax=0;const catData={};CATS.forEach(c=>catData[c]={pts:0,max:0});
+filtered.forEach((q,i)=>{if(answers[i]!==null){const s=q.opts[answers[i]].s;const sum=s.reduce((a,b)=>a+b,0);totalPts+=sum;totalMax+=25;catData[q.cat].pts+=sum;catData[q.cat].max+=25}});
+const pct=totalMax?Math.round(totalPts/totalMax*100):0;
+let col=pct>=80?'var(--neon-grn)':pct>=60?'var(--neon-yel)':'var(--neon-red)';
+document.getElementById('totalScore').innerHTML='<span style="color:'+col+'">'+pct+'%</span>';
+const cs=document.getElementById('catScores');let ch='';
+const catPcts=[];
+CATS.forEach(c=>{const d=catData[c];if(d.max>0){const p=Math.round(d.pts/d.max*100);catPcts.push({name:c,pct:p});
+const cl=p>=80?'var(--neon-grn)':p>=60?'var(--neon-yel)':'var(--neon-red)';
+ch+='<div class="cat-score"><span class="name">'+c+'</span><div class="bar"><div class="fill" style="width:'+p+'%;background:'+cl+'"></div></div><span style="color:'+cl+';font-weight:700;min-width:40px;text-align:right">'+p+'%</span></div>'}});
+cs.innerHTML=ch;drawRadar(catPcts)}
+function drawRadar(data){const cv=document.getElementById('radarCanvas');const ctx=cv.getContext('2d');const cx=170,cy=170,r=120;ctx.clearRect(0,0,340,340);
+const n=data.length;if(n<3)return;
+for(let ring=1;ring<=5;ring++){ctx.beginPath();const rr=r*ring/5;for(let i=0;i<=n;i++){const a=Math.PI*2*i/n-Math.PI/2;const x=cx+rr*Math.cos(a),y=cy+rr*Math.sin(a);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}ctx.strokeStyle='rgba(255,255,255,.1)';ctx.stroke()}
+for(let i=0;i<n;i++){const a=Math.PI*2*i/n-Math.PI/2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));ctx.strokeStyle='rgba(255,255,255,.1)';ctx.stroke();
+const lx=cx+(r+20)*Math.cos(a),ly=cy+(r+20)*Math.sin(a);ctx.fillStyle='#888';ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText(data[i].name,lx,ly)}
+ctx.beginPath();data.forEach((d,i)=>{const a=Math.PI*2*i/n-Math.PI/2;const rr=r*d.pct/100;const x=cx+rr*Math.cos(a),y=cy+rr*Math.sin(a);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)});ctx.closePath();ctx.fillStyle='rgba(0,255,245,.15)';ctx.fill();ctx.strokeStyle='#00fff5';ctx.lineWidth=2;ctx.stroke();
+data.forEach((d,i)=>{const a=Math.PI*2*i/n-Math.PI/2;const rr=r*d.pct/100;ctx.beginPath();ctx.arc(cx+rr*Math.cos(a),cy+rr*Math.sin(a),4,0,Math.PI*2);ctx.fillStyle='#00fff5';ctx.fill()})}
+function restart(){document.getElementById('quizSection').classList.remove('hidden');document.getElementById('resultsSection').classList.remove('show');diffFilter='all';catFilter=null;document.querySelectorAll('.diff-btn').forEach(b=>b.classList.toggle('active',b.textContent==='ALL'));buildCatBar();filterAndShow();window.scrollTo(0,0)}
+init();
+</script>
+</body>
+</html>

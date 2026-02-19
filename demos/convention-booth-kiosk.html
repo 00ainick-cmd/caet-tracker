@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AEA Convention Booth — CAET Advanced Pathway</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a1a;--cyan:#00e5ff;--mag:#ff2d95;--yel:#ffd600;--card:#111128;--border:#1a1a3a;--text:#e0e0e0;--dim:#666}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.header{background:linear-gradient(135deg,#0d0d2b,#1a0a2e);padding:20px 30px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--cyan)}
+.header h1{font-size:1.6em;color:var(--cyan);letter-spacing:2px}
+.header .sub{color:var(--mag);font-size:.85em;margin-top:2px}
+.header .event{text-align:right;color:var(--yel);font-size:.9em;line-height:1.5}
+.tabs{display:flex;gap:0;background:#0d0d25;border-bottom:2px solid var(--border)}
+.tab{flex:1;padding:18px 10px;text-align:center;font-size:.95em;font-weight:700;cursor:pointer;border:none;background:none;color:var(--dim);transition:.3s;min-height:60px;-webkit-tap-highlight-color:transparent}
+.tab.active{color:var(--cyan);background:#111130;border-bottom:3px solid var(--cyan)}
+.tab:nth-child(2).active{color:var(--yel);border-bottom-color:var(--yel)}
+.tab:nth-child(3).active{color:var(--mag);border-bottom-color:var(--mag)}
+.tab:nth-child(4).active{color:#7c4dff;border-bottom-color:#7c4dff}
+.panel{display:none;padding:24px;max-width:1200px;margin:0 auto;animation:fadeIn .4s}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Tab 1: CAET Pathway */
+.pathway{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin:30px 0}
+.phase{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:24px;width:280px;text-align:center;position:relative;transition:.3s}
+.phase:hover{border-color:var(--cyan);transform:translateY(-4px)}
+.phase h3{color:var(--cyan);font-size:1.3em;margin-bottom:8px}
+.phase.p2 h3{color:var(--yel)}
+.phase.p3 h3{color:var(--mag)}
+.phase .num{font-size:2.5em;font-weight:900;opacity:.15;position:absolute;top:10px;right:18px}
+.phase p{color:var(--dim);line-height:1.6;font-size:.9em}
+.arrow{font-size:2em;color:var(--cyan);align-self:center;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:24px 0}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+.stat .val{font-size:2em;font-weight:900;color:var(--cyan)}
+.stat .lbl{font-size:.8em;color:var(--dim);margin-top:4px}
+.bundle{background:linear-gradient(135deg,#1a0a2e,#0d1a2e);border:2px solid var(--mag);border-radius:16px;padding:24px;margin-top:20px;text-align:center}
+.bundle h3{color:var(--mag);font-size:1.4em;margin-bottom:8px}
+.price{font-size:2.5em;font-weight:900;color:var(--yel)}
+
+/* Tab 2: Funding */
+.fed-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:20px 0}
+.fed-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;transition:.3s;cursor:default}
+.fed-card:hover{border-color:var(--yel);transform:scale(1.02)}
+.fed-card h4{color:var(--yel);margin-bottom:6px}
+.fed-card .amt{font-size:1.4em;font-weight:900;color:var(--cyan)}
+.fed-card p{color:var(--dim);font-size:.85em;margin-top:6px;line-height:1.4}
+.state-section{margin-top:24px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px;margin:16px 0}
+.st-btn{background:#1a1a35;border:1px solid var(--border);border-radius:8px;padding:10px 4px;text-align:center;font-weight:700;font-size:.85em;cursor:pointer;transition:.2s;color:var(--text);-webkit-tap-highlight-color:transparent}
+.st-btn.has-state{background:#0d1a2e;border-color:var(--cyan);color:var(--cyan)}
+.st-btn.selected{background:var(--cyan);color:var(--bg);border-color:var(--cyan)}
+.state-info{background:var(--card);border:2px solid var(--cyan);border-radius:14px;padding:20px;margin-top:16px;min-height:80px;display:none}
+.state-info.show{display:block;animation:fadeIn .3s}
+.state-info h3{color:var(--cyan);margin-bottom:10px}
+.state-info ul{list-style:none;padding:0}
+.state-info li{padding:6px 0;border-bottom:1px solid var(--border);color:var(--dim);font-size:.9em}
+.state-info li strong{color:var(--yel)}
+
+/* Tab 3: Video Pipeline */
+.pipeline{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:30px 0;align-items:center}
+.pipe-card{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:24px 20px;width:200px;text-align:center;animation:floatUp 2s ease-in-out infinite alternate}
+.pipe-card:nth-child(3){animation-delay:.3s}
+.pipe-card:nth-child(5){animation-delay:.6s}
+.pipe-card:nth-child(7){animation-delay:.9s}
+@keyframes floatUp{0%{transform:translateY(0)}100%{transform:translateY(-8px)}}
+.pipe-card .icon{font-size:3em;margin-bottom:10px}
+.pipe-card h4{color:var(--mag);margin-bottom:6px}
+.pipe-card p{color:var(--dim);font-size:.85em;line-height:1.4}
+.pipe-arrow{font-size:2em;color:var(--mag);align-self:center}
+.qr-section{background:var(--card);border:2px solid var(--mag);border-radius:16px;padding:30px;text-align:center;margin-top:24px}
+.qr-box{width:160px;height:160px;background:#fff;border-radius:12px;margin:16px auto;display:flex;align-items:center;justify-content:center;font-size:.7em;color:#333;font-weight:700}
+
+/* Tab 4: Tracker */
+.dash-tabs{display:flex;gap:8px;margin-bottom:20px}
+.dash-tab{padding:10px 20px;border-radius:8px;background:#1a1a35;border:1px solid var(--border);cursor:pointer;color:var(--dim);font-weight:600;transition:.2s;-webkit-tap-highlight-color:transparent}
+.dash-tab.active{background:#7c4dff;color:#fff;border-color:#7c4dff}
+.dash-panel{display:none}.dash-panel.active{display:block;animation:fadeIn .3s}
+.progress-row{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px}
+.progress-row .name{width:140px;font-weight:600;font-size:.9em}
+.progress-bar{flex:1;height:12px;background:#1a1a35;border-radius:6px;overflow:hidden}
+.progress-fill{height:100%;border-radius:6px;transition:width 1s}
+.progress-row .pct{width:50px;text-align:right;font-weight:700;font-size:.9em}
+.signoff{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:16px}
+.signoff h4{color:#7c4dff;margin-bottom:10px}
+.signoff-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.signoff-row .status{padding:4px 12px;border-radius:6px;font-size:.8em;font-weight:700}
+.status.done{background:#1b5e20;color:#4caf50}
+.status.pending{background:#4a3800;color:var(--yel)}
+.status.na{background:#333;color:#888}
+</style>
+</head>
+<body>
+<div class="header">
+<div><h1>✈️ AEA / CAET</h1><div class="sub">Certified Avionics Electronics Technician</div></div>
+<div class="event">AEA Convention 2026<br><strong>March 23–26 · Dallas, TX</strong></div>
+</div>
+
+<div class="tabs">
+<div class="tab active" onclick="showTab(0)">🎓 Advanced Pathway</div>
+<div class="tab" onclick="showTab(1)">💰 Funding Explorer</div>
+<div class="tab" onclick="showTab(2)">🎥 Video Pipeline</div>
+<div class="tab" onclick="showTab(3)">📊 Tracker Preview</div>
+</div>
+
+<!-- TAB 1: CAET PATHWAY -->
+<div class="panel active" id="p0">
+<h2 style="text-align:center;color:var(--cyan);margin-bottom:8px">CAET Advanced Certification Pathway</h2>
+<p style="text-align:center;color:var(--dim);margin-bottom:20px">Three-phase, shop-based evaluation. No classroom required.</p>
+<div class="pathway">
+<div class="phase"><div class="num">1</div><h3>⚡ Practical</h3><p>65 hands-on tasks across 8 categories. Completed in your shop, on your schedule. Evaluator sign-off on each task.</p></div>
+<div class="arrow">→</div>
+<div class="phase p2"><div class="num">2</div><h3>📝 Written</h3><p>Knowledge validation exam covering regulatory, troubleshooting, and systems knowledge. Scenario-based questions.</p></div>
+<div class="arrow">→</div>
+<div class="phase p3"><div class="num">3</div><h3>🎤 Oral Board</h3><p>Live evaluation with industry panel. Demonstrate troubleshooting logic, safety awareness, and communication skills.</p></div>
+</div>
+<div class="stats">
+<div class="stat"><div class="val">65</div><div class="lbl">Hands-On Tasks</div></div>
+<div class="stat"><div class="val">8</div><div class="lbl">Skill Categories</div></div>
+<div class="stat"><div class="val">3</div><div class="lbl">Evaluation Phases</div></div>
+<div class="stat"><div class="val">100%</div><div class="lbl">Shop-Based</div></div>
+</div>
+<div class="bundle">
+<h3>🎯 Complete CAET Package</h3>
+<p style="color:var(--dim);margin:8px 0">Study guide + prep course + video modules + practice exams + tracker access</p>
+<div class="price">$497<span style="font-size:.4em;color:var(--dim)"> / technician</span></div>
+<p style="color:var(--cyan);font-size:.85em;margin-top:8px">Volume discounts available for shops with 5+ technicians</p>
+</div>
+</div>
+
+<!-- TAB 2: FUNDING -->
+<div class="panel" id="p1">
+<h2 style="color:var(--yel);margin-bottom:16px">💰 Federal Funding Programs</h2>
+<div class="fed-grid">
+<div class="fed-card"><h4>🎖️ SkillBridge</h4><div class="amt">FREE LABOR</div><p>180 days of military personnel at zero cost. DoD pays their salary during transition.</p></div>
+<div class="fed-card"><h4>🎖️ COOL</h4><div class="amt">$4,000/yr</div><p>Credentialing Opportunities On-Line. Military pays for certification costs.</p></div>
+<div class="fed-card"><h4>🎖️ GI Bill</h4><div class="amt">$1.5–3K/mo</div><p>Monthly housing + tuition for registered apprenticeship programs.</p></div>
+<div class="fed-card"><h4>📋 WIOA</h4><div class="amt">50% Wage</div><p>Workforce Innovation & Opportunity Act. Up to 50% wage reimbursement for OJT.</p></div>
+<div class="fed-card"><h4>📋 WOTC</h4><div class="amt">$2.4–9.6K</div><p>Work Opportunity Tax Credit per qualifying hire. Veterans, ex-felons, SNAP recipients.</p></div>
+</div>
+<div class="state-section">
+<h2 style="color:var(--cyan);margin-bottom:8px">🗺️ Select a State for Additional Programs</h2>
+<p style="color:var(--dim);font-size:.85em;margin-bottom:12px">States highlighted in cyan have identified state-specific programs.</p>
+<div class="state-grid" id="stateGrid"></div>
+<div class="state-info" id="stateInfo"></div>
+</div>
+</div>
+
+<!-- TAB 3: VIDEO PIPELINE -->
+<div class="panel" id="p2">
+<h2 style="text-align:center;color:var(--mag);margin-bottom:8px">🎥 Video-to-Training Pipeline</h2>
+<p style="text-align:center;color:var(--dim);margin-bottom:20px">Turn shop floor expertise into structured training modules — automatically.</p>
+<div class="pipeline">
+<div class="pipe-card"><div class="icon">📹</div><h4>Capture</h4><p>Record the procedure on any phone or tablet. No script needed.</p></div>
+<div class="pipe-arrow">→</div>
+<div class="pipe-card"><div class="icon">📝</div><h4>Transcribe</h4><p>AI extracts speech to text with technical vocabulary recognition.</p></div>
+<div class="pipe-arrow">→</div>
+<div class="pipe-card"><div class="icon">🖼️</div><h4>Frame Extract</h4><p>Key frames pulled for step-by-step visual guides.</p></div>
+<div class="pipe-arrow">→</div>
+<div class="pipe-card"><div class="icon">📚</div><h4>Training Module</h4><p>Structured content with quiz questions and evaluation rubrics.</p></div>
+</div>
+<div class="qr-section">
+<h3 style="color:var(--mag)">📱 Try It Live</h3>
+<p style="color:var(--dim);margin-bottom:8px">Scan to see a sample training module generated from shop video</p>
+<div class="qr-box">[ QR Code ]<br>Sample Module</div>
+<p style="color:var(--dim);font-size:.8em;margin-top:10px">Coming Soon — Full pipeline demo at AEA Convention</p>
+</div>
+</div>
+
+<!-- TAB 4: TRACKER -->
+<div class="panel" id="p3">
+<h2 style="color:#7c4dff;margin-bottom:16px">📊 CAET Progress Tracker</h2>
+<div class="dash-tabs">
+<div class="dash-tab active" onclick="showDash(0)">👨‍🔧 Student View</div>
+<div class="dash-tab" onclick="showDash(1)">✅ Evaluator View</div>
+<div class="dash-tab" onclick="showDash(2)">🏢 Admin View</div>
+</div>
+<div class="dash-panel active" id="d0">
+<h3 style="color:var(--cyan);margin-bottom:14px">My Progress — Jake Martinez</h3>
+<div class="progress-row"><div class="name">Pitot-Static</div><div class="progress-bar"><div class="progress-fill" style="width:100%;background:var(--cyan)"></div></div><div class="pct" style="color:var(--cyan)">100%</div></div>
+<div class="progress-row"><div class="name">Surveillance</div><div class="progress-bar"><div class="progress-fill" style="width:87%;background:var(--cyan)"></div></div><div class="pct" style="color:var(--cyan)">87%</div></div>
+<div class="progress-row"><div class="name">Autopilot</div><div class="progress-bar"><div class="progress-fill" style="width:62%;background:var(--yel)"></div></div><div class="pct" style="color:var(--yel)">62%</div></div>
+<div class="progress-row"><div class="name">FMS/GPS</div><div class="progress-bar"><div class="progress-fill" style="width:45%;background:var(--yel)"></div></div><div class="pct" style="color:var(--yel)">45%</div></div>
+<div class="progress-row"><div class="name">Audio/Comm</div><div class="progress-bar"><div class="progress-fill" style="width:30%;background:var(--mag)"></div></div><div class="pct" style="color:var(--mag)">30%</div></div>
+<div class="progress-row"><div class="name">Wire Harness</div><div class="progress-bar"><div class="progress-fill" style="width:75%;background:var(--cyan)"></div></div><div class="pct" style="color:var(--cyan)">75%</div></div>
+<div class="progress-row"><div class="name">Software/Config</div><div class="progress-bar"><div class="progress-fill" style="width:20%;background:var(--mag)"></div></div><div class="pct" style="color:var(--mag)">20%</div></div>
+<div class="progress-row"><div class="name">Documentation</div><div class="progress-bar"><div class="progress-fill" style="width:55%;background:var(--yel)"></div></div><div class="pct" style="color:var(--yel)">55%</div></div>
+</div>
+<div class="dash-panel" id="d1">
+<h3 style="color:var(--cyan);margin-bottom:14px">Pending Sign-Offs</h3>
+<div class="signoff"><h4>Tasks Awaiting Evaluation</h4>
+<div class="signoff-row"><span>Jake M. — Pitot-Static Leak Check</span><span class="status done">✓ Signed</span></div>
+<div class="signoff-row"><span>Jake M. — XPDR Install & Test</span><span class="status pending">⏳ Pending</span></div>
+<div class="signoff-row"><span>Sarah K. — GPS Antenna Install</span><span class="status pending">⏳ Pending</span></div>
+<div class="signoff-row"><span>Mike R. — Wire Bundle Routing</span><span class="status done">✓ Signed</span></div>
+<div class="signoff-row"><span>Sarah K. — Audio Panel Config</span><span class="status na">— Not Started</span></div>
+</div>
+</div>
+<div class="dash-panel" id="d2">
+<h3 style="color:var(--cyan);margin-bottom:14px">Shop Overview — Ace Avionics (3 Techs)</h3>
+<div class="progress-row"><div class="name">Jake Martinez</div><div class="progress-bar"><div class="progress-fill" style="width:63%;background:var(--cyan)"></div></div><div class="pct" style="color:var(--cyan)">63%</div></div>
+<div class="progress-row"><div class="name">Sarah Kim</div><div class="progress-bar"><div class="progress-fill" style="width:41%;background:var(--yel)"></div></div><div class="pct" style="color:var(--yel)">41%</div></div>
+<div class="progress-row"><div class="name">Mike Reeves</div><div class="progress-bar"><div class="progress-fill" style="width:85%;background:var(--cyan)"></div></div><div class="pct" style="color:var(--cyan)">85%</div></div>
+<div class="signoff" style="margin-top:20px"><h4>Program Stats</h4>
+<div class="signoff-row"><span>Total Tasks Completed</span><span style="color:var(--cyan);font-weight:700">124 / 195</span></div>
+<div class="signoff-row"><span>Avg. Completion Rate</span><span style="color:var(--yel);font-weight:700">63%</span></div>
+<div class="signoff-row"><span>Est. Program Completion</span><span style="color:var(--dim);font-weight:700">June 2026</span></div>
+</div>
+</div>
+</div>
+
+<script>
+const states=['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
+const stateData={TX:['Texas Enterprise Fund — job creation incentives','Skills Development Fund — customized training grants','Texas Workforce Commission apprenticeship support'],KS:['Kansas Industrial Training (KIT) — employee training','Kansas Industrial Retraining (KIR) — incumbent worker','Registered Apprenticeship tax credits'],MO:['Missouri Works Program — retention incentives','Customized Training Program','Missouri Apprenticeship Initiative'],FL:['Quick Response Training — new/expanding businesses','Incumbent Worker Training — upskill existing','Florida Apprenticeship Grant Program'],CT:['CT Manufacturing Innovation Fund','Step Up program — subsidized employment','CT Apprenticeship Tax Credit — $7,500/apprentice'],SC:['readySC — customized recruiting & training','Apprenticeship Carolina — tax credits $1,000/yr','SC WINS — workforce scholarships'],LA:['LED FastStart — workforce recruitment & training','Industrial Tax Exemption Program','LA Incumbent Worker Training Program'],GA:['Georgia Quick Start — free workforce training','HOPE Grant — tuition-free technical college','Georgia Registered Apprenticeship tax credit'],MT:['Montana Apprenticeship Tax Credit','Big Sky Economic Development grants','Primary Sector Workforce Training Grant'],NV:['Train Employees Now (TEN) — short-term training','Silver State Works — employer incentives','NV Governor\'s Office of Workforce Innovation grants'],PA:['WEDnetPA — incumbent worker training','PA First Industries Fund','Apprenticeship & Training Office grants'],VA:['Virginia Jobs Investment Program (VJIP)','Virginia Talent Accelerator Program','VA Apprenticeship Council — $500/apprentice tax credit'],CO:['Colorado FIRST — customized job training','Existing Industry Training — incumbent worker','CO Apprenticeship Directory & grants'],RI:['Real Jobs Rhode Island — industry partnerships','RI Employer Tax Credit for apprentices','Workforce Innovation Hub grants'],MA:['Workforce Training Fund — up to $250K/employer','Apprenticeship Tax Credit — $4,800/apprentice','MA Hire Now program'],ND:['ND Workforce Enhancement Grant','New Jobs Training Program — income tax diversion','Operation Intern — wage subsidies'],TN:['Tennessee Promise — free community college','GIVE grants — Governor\'s Investment in Vocational Education','TN Reconnect — adults returning to education']};
+const g=document.getElementById('stateGrid');
+states.forEach(s=>{const b=document.createElement('div');b.className='st-btn'+(stateData[s]?' has-state':'');b.textContent=s;b.onclick=()=>selectState(s);g.appendChild(b)});
+function selectState(s){document.querySelectorAll('.st-btn').forEach(b=>b.classList.remove('selected'));event.target.classList.add('selected');const info=document.getElementById('stateInfo');if(stateData[s]){info.innerHTML='<h3>'+s+' — State Programs</h3><ul>'+stateData[s].map(p=>'<li><strong>✓</strong> '+p+'</li>').join('')+'</ul><p style="color:var(--dim);font-size:.85em;margin-top:10px">+ All federal programs (SkillBridge, COOL, GI Bill, WIOA, WOTC) also available</p>';info.className='state-info show'}else{info.innerHTML='<h3>'+s+'</h3><p style="color:var(--dim)">All federal programs available (SkillBridge, COOL, GI Bill, WIOA, WOTC). State-specific programs being researched.</p>';info.className='state-info show'}}
+function showTab(i){document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',j===i));document.querySelectorAll('.panel').forEach((p,j)=>p.classList.toggle('active',j===i))}
+function showDash(i){document.querySelectorAll('.dash-tab').forEach((t,j)=>t.classList.toggle('active',j===i));document.querySelectorAll('.dash-panel').forEach((p,j)=>p.classList.toggle('active',j===i))}
+</script>
+</body>
+</html>

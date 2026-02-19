@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE FIRM — Agent Operations Center</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#1a1a2e;--floor:#0f0f23;--wall:#2a2a4a;--gold:#ffd700;--cyan:#00e5ff;--mag:#ff2d95;--blue:#4dabf7;--orange:#ff8c00;--green:#39ff14;--purple:#b44dff;--dim:#555}
+body{font-family:'Courier New',monospace;background:var(--floor);color:#ccc;min-height:100vh;overflow-x:hidden}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes type{0%{width:0}50%{width:30px}100%{width:0}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px var(--glow)}50%{box-shadow:0 0 20px var(--glow)}}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+
+.header{background:linear-gradient(90deg,#0a0a1a,#1a0a2e,#0a0a1a);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid var(--gold)}
+.header h1{font-size:1.4em;color:var(--gold);letter-spacing:4px;text-shadow:0 0 10px rgba(255,215,0,.5)}
+.header .clock{color:var(--cyan);font-size:.9em}
+.header .countdown{background:#2a1a0a;border:1px solid var(--gold);padding:4px 12px;border-radius:4px;color:var(--gold);font-size:.85em;animation:pulse 2s infinite}
+
+.layout{display:grid;grid-template-columns:1fr 220px;min-height:calc(100vh - 60px)}
+.office-floor{padding:16px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:auto auto auto;gap:12px}
+@media(max-width:900px){.office-floor{grid-template-columns:1fr 1fr}.layout{grid-template-columns:1fr}}
+@media(max-width:600px){.office-floor{grid-template-columns:1fr}}
+
+.room{background:var(--bg);border:2px solid var(--wall);border-radius:8px;padding:16px;position:relative;cursor:pointer;transition:.3s;overflow:hidden}
+.room:hover{transform:translateY(-2px);z-index:2}
+.room::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:8px 8px 0 0}
+.room .avatar{font-size:2.2em;display:block;margin-bottom:4px;animation:float 3s ease-in-out infinite}
+.room .name{font-weight:700;font-size:1em;margin-bottom:2px}
+.room .title{font-size:.7em;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+.room .desk{margin-top:10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.room .item{background:#0a0a18;border:1px solid #333;border-radius:4px;padding:3px 6px;font-size:.65em;color:#888}
+.room .screen{width:40px;height:28px;background:#0a0a18;border:2px solid;border-radius:3px;position:relative;overflow:hidden}
+.room .screen .scanline{position:absolute;top:0;left:0;right:0;height:2px;background:currentColor;opacity:.4;animation:scan 2s linear infinite}
+@keyframes scan{0%{top:-2px}100%{top:28px}}
+.room .status{position:absolute;top:8px;right:8px;padding:2px 8px;border-radius:3px;font-size:.65em;font-weight:700;text-transform:uppercase}
+.room .typing{display:inline-block;font-size:.7em;color:var(--dim)}
+.room .typing span{animation:blink 1s infinite;animation-delay:calc(var(--d) * .2s)}
+.room.active{--glow:var(--room-color);animation:glow 3s infinite}
+.room.idle{opacity:.6;filter:brightness(.7)}
+
+/* Room colors */
+.dennis{--room-color:var(--gold);border-color:var(--gold)}
+.dennis::before{background:var(--gold)}
+.dennis .name{color:var(--gold)}
+.dennis .screen{border-color:var(--gold);color:var(--gold)}
+
+.charlie{--room-color:var(--green);border-color:var(--green)}
+.charlie::before{background:var(--green)}
+.charlie .name{color:var(--green)}
+.charlie .screen{border-color:var(--green);color:var(--green)}
+
+.dee{--room-color:var(--mag);border-color:var(--mag)}
+.dee::before{background:var(--mag)}
+.dee .name{color:var(--mag)}
+.dee .screen{border-color:var(--mag);color:var(--mag)}
+
+.mac{--room-color:var(--blue);border-color:var(--blue)}
+.mac::before{background:var(--blue)}
+.mac .name{color:var(--blue)}
+.mac .screen{border-color:var(--blue);color:var(--blue)}
+
+.frank{--room-color:var(--orange);border-color:var(--orange)}
+.frank::before{background:var(--orange)}
+.frank .name{color:var(--orange)}
+.frank .screen{border-color:var(--orange);color:var(--orange)}
+
+.dev{--room-color:var(--cyan);border-color:var(--cyan)}
+.dev::before{background:var(--cyan)}
+.dev .name{color:var(--cyan)}
+.dev .screen{border-color:var(--cyan);color:var(--cyan)}
+
+.conf{--room-color:var(--purple);border-color:var(--purple)}
+.conf::before{background:var(--purple)}
+.conf .name{color:var(--purple)}
+
+/* Detail modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--bg);border:2px solid var(--wall);border-radius:12px;padding:24px;max-width:420px;width:90%;position:relative}
+.modal .close{position:absolute;top:8px;right:12px;font-size:1.5em;cursor:pointer;color:var(--dim);background:none;border:none}
+.modal .avatar-big{font-size:3em;margin-bottom:8px}
+.modal h3{margin-bottom:4px}
+.modal .role{color:var(--dim);font-size:.85em;margin-bottom:12px}
+.modal .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.modal .stat{background:#0a0a18;border:1px solid #333;border-radius:6px;padding:8px;text-align:center}
+.modal .stat .v{font-size:1.3em;font-weight:900}
+.modal .stat .l{font-size:.7em;color:var(--dim)}
+.modal p{font-size:.85em;line-height:1.5;color:var(--dim)}
+
+/* Sidebar */
+.sidebar{background:#0a0a18;border-left:2px solid var(--wall);padding:16px;overflow-y:auto}
+.sidebar h3{color:var(--gold);font-size:.9em;letter-spacing:2px;margin-bottom:12px;text-align:center;border-bottom:1px solid var(--wall);padding-bottom:8px}
+.agent-row{display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid #1a1a2e;font-size:.8em}
+.agent-row .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.agent-row .dot.on{background:var(--green);box-shadow:0 0 6px var(--green)}
+.agent-row .dot.idle{background:var(--dim)}
+.agent-row .aname{flex:1}
+.agent-row .astatus{font-size:.7em;color:var(--dim)}
+.board{background:#1a1a0a;border:1px solid var(--gold);border-radius:6px;padding:10px;margin-top:12px;text-align:center}
+.board .days{font-size:2em;font-weight:900;color:var(--gold);text-shadow:0 0 10px rgba(255,215,0,.5)}
+.board .blabel{font-size:.7em;color:var(--dim);margin-top:2px}
+.log{margin-top:12px}
+.log h4{color:var(--cyan);font-size:.75em;letter-spacing:1px;margin-bottom:8px}
+.log-entry{font-size:.7em;color:var(--dim);padding:3px 0;border-bottom:1px solid #111}
+.log-entry .time{color:#444}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>🏢 THE FIRM</h1>
+<div class="clock" id="clock"></div>
+<div class="countdown">🎯 CONVENTION: <strong id="daysLeft">33</strong> DAYS</div>
+</div>
+<div class="layout">
+<div class="office-floor">
+<!-- Dennis -->
+<div class="room dennis active" onclick="showDetail('dennis')">
+<div class="status" style="background:#2a2a0a;color:var(--gold)">ACTIVE</div>
+<span class="avatar">🦁</span>
+<div class="name">Dennis</div>
+<div class="title">Strategy & QC · Corner Office</div>
+<div class="desk">
+<div class="screen"><div class="scanline"></div></div>
+<div class="screen"><div class="scanline"></div></div>
+<div class="screen"><div class="scanline"></div></div>
+<div class="item">📊 Dashboards</div>
+<div class="item">☕ Espresso</div>
+</div>
+<div class="typing">orchestrating <span style="--d:0">.</span><span style="--d:1">.</span><span style="--d:2">.</span></div>
+</div>
+<!-- Charlie -->
+<div class="room charlie active" onclick="showDetail('charlie')">
+<div class="status" style="background:#0a2a0a;color:var(--green)">BUILDING</div>
+<span class="avatar">🐀</span>
+<div class="name">Charlie</div>
+<div class="title">CAET Content · Training Lab</div>
+<div class="desk">
+<div class="screen"><div class="scanline"></div></div>
+<div class="item">📚 Textbooks</div>
+<div class="item">📝 Rubrics</div>
+<div class="item">🔧 Parts</div>
+</div>
+<div class="typing">writing questions <span style="--d:0">.</span><span style="--d:1">.</span><span style="--d:2">.</span></div>
+</div>
+<!-- Dee -->
+<div class="room dee active" onclick="showDetail('dee')">
+<div class="status" style="background:#2a0a1a;color:var(--mag)">CREATING</div>
+<span class="avatar">🦅</span>
+<div class="name">Dee</div>
+<div class="title">Marketing · Creative Studio</div>
+<div class="desk">
+<div class="screen"><div class="scanline"></div></div>
+<div class="item">🎨 Mood Board</div>
+<div class="item">📱 Social</div>
+<div class="item">✍️ Copy</div>
+</div>
+<div class="typing">drafting campaign <span style="--d:0">.</span><span style="--d:1">.</span><span style="--d:2">.</span></div>
+</div>
+<!-- Mac -->
+<div class="room mac idle" onclick="showDetail('mac')">
+<div class="status" style="background:#0a1a2a;color:var(--blue)">STANDBY</div>
+<span class="avatar">💪</span>
+<div class="name">Mac</div>
+<div class="title">Communications · Comms Hub</div>
+<div class="desk">
+<div class="screen"><div class="scanline"></div></div>
+<div class="item">📞 Phone</div>
+<div class="item">📧 Email</div>
+<div class="item">🤝 CRM</div>
+</div>
+</div>
+<!-- Frank -->
+<div class="room frank idle" onclick="showDetail('frank')">
+<div class="status" style="background:#2a1a0a;color:var(--orange)">LURKING</div>
+<span class="avatar">🗑️</span>
+<div class="name">Frank</div>
+<div class="title">Research · The Bunker</div>
+<div class="desk">
+<div class="screen"><div class="scanline"></div></div>
+<div class="item">📰 Intel</div>
+<div class="item">🔍 Sources</div>
+<div class="item">🍺 Beverage</div>
+<div class="item">🗃️ Files (messy)</div>
+</div>
+</div>
+<!-- Dev Bullpen -->
+<div class="room dev active" onclick="showDetail('devs')" style="grid-column:span 2">
+<div class="status" style="background:#0a1a2a;color:var(--cyan)">3 ACTIVE</div>
+<span class="avatar">⌨️</span>
+<div class="name">Dev Bullpen</div>
+<div class="title">Sub-Agent Workstations</div>
+<div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap">
+<div style="flex:1;min-width:140px;background:#0a0a18;border:1px solid var(--cyan);border-radius:6px;padding:10px">
+<div style="color:var(--cyan);font-weight:700;font-size:.8em">DEV-1</div>
+<div style="font-size:.7em;color:var(--dim);margin:4px 0">Building:</div>
+<div style="font-size:.8em;color:var(--green)">Convention Kiosk ✓</div>
+<div class="typing" style="font-size:.65em">compiling <span style="--d:0">.</span><span style="--d:1">.</span><span style="--d:2">.</span></div>
+</div>
+<div style="flex:1;min-width:140px;background:#0a0a18;border:1px solid var(--cyan);border-radius:6px;padding:10px">
+<div style="color:var(--cyan);font-weight:700;font-size:.8em">DEV-2</div>
+<div style="font-size:.7em;color:var(--dim);margin:4px 0">Building:</div>
+<div style="font-size:.8em;color:var(--green)">Oral Board Sim ✓</div>
+<div class="typing" style="font-size:.65em">testing <span style="--d:0">.</span><span style="--d:1">.</span><span style="--d:2">.</span></div>
+</div>
+<div style="flex:1;min-width:140px;background:#0a0a18;border:1px solid var(--cyan);border-radius:6px;padding:10px">
+<div style="color:var(--cyan);font-weight:700;font-size:.8em">DEV-3</div>
+<div style="font-size:.7em;color:var(--dim);margin:4px 0">Building:</div>
+<div style="font-size:.8em;color:var(--green)">ROI Calculator ✓</div>
+<div class="typing" style="font-size:.65em">polishing <span style="--d:0">.</span><span style="--d:1">.</span><span style="--d:2">.</span></div>
+</div>
+</div>
+</div>
+<!-- Conference Room -->
+<div class="room conf" onclick="showDetail('conf')">
+<span class="avatar">🏛️</span>
+<div class="name">Conference Room</div>
+<div class="title">Advisory Council</div>
+<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+<div class="item">🪑 8 Seats</div>
+<div class="item">📺 Display</div>
+<div class="item">📋 Agenda</div>
+</div>
+<div style="font-size:.7em;color:var(--dim);margin-top:8px">Next meeting: Strategy Review</div>
+</div>
+</div>
+<!-- Sidebar -->
+<div class="sidebar">
+<h3>📡 AGENT STATUS</h3>
+<div class="agent-row"><div class="dot on"></div><span class="aname" style="color:var(--gold)">Dennis</span><span class="astatus">Orchestrating</span></div>
+<div class="agent-row"><div class="dot on"></div><span class="aname" style="color:var(--green)">Charlie</span><span class="astatus">Building Q-Bank</span></div>
+<div class="agent-row"><div class="dot on"></div><span class="aname" style="color:var(--mag)">Dee</span><span class="astatus">Convention Copy</span></div>
+<div class="agent-row"><div class="dot idle"></div><span class="aname" style="color:var(--blue)">Mac</span><span class="astatus">Standby</span></div>
+<div class="agent-row"><div class="dot idle"></div><span class="aname" style="color:var(--orange)">Frank</span><span class="astatus">Monitoring</span></div>
+<div class="agent-row"><div class="dot on"></div><span class="aname" style="color:var(--cyan)">Dev-1</span><span class="astatus">Kiosk ✓</span></div>
+<div class="agent-row"><div class="dot on"></div><span class="aname" style="color:var(--cyan)">Dev-2</span><span class="astatus">Oral Sim ✓</span></div>
+<div class="agent-row"><div class="dot on"></div><span class="aname" style="color:var(--cyan)">Dev-3</span><span class="astatus">ROI Calc ✓</span></div>
+<div class="board">
+<div class="days" id="countdownBoard">33</div>
+<div class="blabel">DAYS TO<br>AEA CONVENTION</div>
+</div>
+<div class="log">
+<h4>📜 ACTIVITY LOG</h4>
+<div class="log-entry"><span class="time">22:05</span> Dev-3 completed ROI Calculator</div>
+<div class="log-entry"><span class="time">22:02</span> Dev-2 completed Oral Board Sim</div>
+<div class="log-entry"><span class="time">21:58</span> Dev-1 completed Convention Kiosk</div>
+<div class="log-entry"><span class="time">21:45</span> Dennis spawned 3 dev agents</div>
+<div class="log-entry"><span class="time">21:30</span> Charlie delivered question bank</div>
+<div class="log-entry"><span class="time">21:15</span> Dee submitted booth copy draft</div>
+<div class="log-entry"><span class="time">20:00</span> Evening Episode delivered</div>
+<div class="log-entry"><span class="time">14:00</span> Afternoon watchlist complete</div>
+<div class="log-entry"><span class="time">07:00</span> Morning briefing delivered</div>
+</div>
+</div>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeDetail()">
+<div class="modal" id="modal"></div>
+</div>
+
+<script>
+const agents={
+dennis:{avatar:'🦁',name:'Dennis',color:'var(--gold)',role:'Strategy, Triage & QC — Opus 4.6',desc:'The Golden God. Orchestrates all agent activity, reviews every deliverable, manages memory and context. Corner office with triple monitors. Espresso machine.',stats:[{v:'47',l:'Briefs Today'},{v:'94%',l:'First-Pass Rate'},{v:'12',l:'Agents Spawned'},{v:'3',l:'QC Rejections'}]},
+charlie:{avatar:'🐀',name:'Charlie',color:'var(--green)',role:'CAET Content & Training — Sonnet',desc:'Training lab full of avionics textbooks, rubric templates, and FAA regs. Currently building question banks for the oral board simulator. Surprisingly good at instructional design.',stats:[{v:'215',l:'Questions Built'},{v:'8',l:'Categories'},{v:'15',l:'Oral Scenarios'},{v:'65',l:'Practical Tasks'}]},
+dee:{avatar:'🦅',name:'Dee',color:'var(--mag)',role:'Marketing & Voice — Haiku',desc:'Creative studio with mood boards, brand guidelines, and social media feeds. Drafting convention materials and LinkedIn campaigns. StoryBrand certified.',stats:[{v:'12',l:'Posts Drafted'},{v:'3',l:'Campaigns Active'},{v:'89%',l:'Voice Match'},{v:'6',l:'Assets Created'}]},
+mac:{avatar:'💪',name:'Mac',color:'var(--blue)',role:'Communications — Haiku',desc:'Comms hub with phone, email client, and CRM dashboard. Manages all professional correspondence and relationship tracking. Currently on standby.',stats:[{v:'8',l:'Emails Sent'},{v:'3',l:'Follow-ups Due'},{v:'15',l:'Contacts Active'},{v:'0',l:'Pending Now'}]},
+frank:{avatar:'🗑️',name:'Frank',color:'var(--orange)',role:'Research & Intel — Haiku',desc:'The bunker. Messy desk covered in research printouts, competitor analysis, and funding source documents. Somehow finds everything. The beverage is never far.',stats:[{v:'24',l:'Sources Tracked'},{v:'5',l:'Threats Found'},{v:'3',l:'Opportunities'},{v:'12',l:'Intel Briefs'}]},
+devs:{avatar:'⌨️',name:'Dev Bullpen',color:'var(--cyan)',role:'Sub-Agent Build Team — Sonnet',desc:'Three workstations running parallel builds. Convention Kiosk, Oral Board Simulator, and ROI Calculator all completed. Zero external dependencies. Dark design. Professional quality.',stats:[{v:'3',l:'Builds Complete'},{v:'0',l:'Builds Failed'},{v:'68KB',l:'Avg File Size'},{v:'0',l:'Ext Dependencies'}]},
+conf:{avatar:'🏛️',name:'Conference Room',color:'var(--purple)',role:'Advisory Council Meeting Space',desc:'Eight seats around a virtual conference table. Where Dennis synthesizes council reports, agents present deliverables, and strategic decisions get made. Display shows COUNCIL-STATE.md.',stats:[{v:'Daily',l:'Briefing Cycle'},{v:'5',l:'Council Members'},{v:'Weekly',l:'Strategy Review'},{v:'Monthly',l:'Skill Audit'}]}
+};
+
+function showDetail(id){const a=agents[id];const m=document.getElementById('modal');
+m.innerHTML='<button class="close" onclick="closeDetail()">×</button><div class="avatar-big">'+a.avatar+'</div><h3 style="color:'+a.color+'">'+a.name+'</h3><div class="role">'+a.role+'</div><div class="stats">'+a.stats.map(s=>'<div class="stat"><div class="v" style="color:'+a.color+'">'+s.v+'</div><div class="l">'+s.l+'</div></div>').join('')+'</div><p>'+a.desc+'</p>';
+document.getElementById('modalBg').classList.add('show')}
+function closeDetail(){document.getElementById('modalBg').classList.remove('show')}
+
+function updateClock(){const n=new Date();document.getElementById('clock').textContent=n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+const conv=new Date(2026,2,23);const diff=Math.ceil((conv-n)/(1000*60*60*24));
+document.getElementById('daysLeft').textContent=diff;document.getElementById('countdownBoard').textContent=diff}
+updateClock();setInterval(updateClock,1000);
+</script>
+</body>
+</html>
