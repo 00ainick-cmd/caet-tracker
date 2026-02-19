@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎮 MISSION CONTROL v2 — The Gang Runs an AI Company</title>
+<style>
+/* ===== PIXEL FONT via CSS ===== */
+@font-face {
+  font-family: 'PixelFont';
+  src: url(data:font/woff2;base64,) format('woff2');
+}
+
+:root {
+  --bg: #0f0f23;
+  --panel: #1a1a2e;
+  --green: #39ff14;
+  --gold: #ffd700;
+  --orange: #ff6b35;
+  --cyan: #00fff7;
+  --magenta: #ff00ff;
+  --red: #ff3131;
+  --purple: #b388ff;
+  --text: #e0e0e0;
+  --dim: #555;
+  --pixel-border: 3px solid;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Courier New', 'Consolas', monospace;
+  overflow-x: hidden;
+  image-rendering: pixelated;
+}
+
+/* Scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 10000;
+}
+
+/* ===== BOOT SEQUENCE ===== */
+#boot-screen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #000;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: opacity 0.5s;
+}
+#boot-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#boot-text {
+  color: var(--green);
+  font-size: 18px;
+  font-family: 'Courier New', monospace;
+  text-align: left;
+  white-space: pre;
+  line-height: 1.8;
+  text-shadow: 0 0 10px var(--green);
+  max-width: 600px;
+}
+
+#episode-card {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #000;
+  z-index: 9998;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+#episode-card.show {
+  display: flex;
+}
+#episode-card h1 {
+  color: #fff;
+  font-family: 'Textile', 'Cochin', 'Georgia', serif;
+  font-size: 32px;
+  font-weight: normal;
+  letter-spacing: 1px;
+}
+#episode-card .sunny-star {
+  color: #fff;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+/* ===== MAIN APP ===== */
+#app {
+  display: none;
+  min-height: 100vh;
+}
+#app.show {
+  display: flex;
+  flex-direction: column;
+  animation: powerOn 0.6s ease-out;
+}
+@keyframes powerOn {
+  0% { filter: brightness(3) contrast(0); transform: scaleY(0.01); }
+  30% { filter: brightness(2) contrast(0.5); transform: scaleY(0.5); }
+  60% { filter: brightness(1.3) contrast(0.8); transform: scaleY(1); }
+  100% { filter: brightness(1) contrast(1); transform: scaleY(1); }
+}
+
+/* ===== TOP BAR ===== */
+#topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 50px;
+  background: var(--panel);
+  border-bottom: 3px solid var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 100;
+  box-shadow: 0 2px 20px rgba(255,215,0,0.15);
+}
+#topbar .logo {
+  color: var(--gold);
+  font-size: 16px;
+  font-weight: bold;
+  text-shadow: 0 0 8px rgba(255,215,0,0.5);
+  white-space: nowrap;
+}
+#topbar .subtitle {
+  color: var(--cyan);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+  transition: text-shadow 0.3s;
+}
+#topbar .subtitle:hover {
+  text-shadow: 0 0 15px var(--cyan);
+}
+#topbar .clock-area {
+  text-align: right;
+  font-size: 12px;
+  white-space: nowrap;
+}
+#topbar .clock-area .clock { color: var(--green); }
+#topbar .clock-area .countdown { color: var(--orange); font-weight: bold; }
+
+/* ===== SIDEBAR ===== */
+#sidebar {
+  position: fixed;
+  top: 50px;
+  left: 0;
+  width: 180px;
+  bottom: 40px;
+  background: var(--panel);
+  border-right: 3px solid var(--gold);
+  padding-top: 15px;
+  z-index: 99;
+  display: flex;
+  flex-direction: column;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 13px;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+  position: relative;
+  user-select: none;
+}
+.nav-item:hover {
+  color: var(--text);
+  background: rgba(255,255,255,0.03);
+}
+.nav-item.active {
+  color: var(--gold);
+  border-left-color: var(--gold);
+  background: rgba(255,215,0,0.05);
+}
+.nav-item.active::before {
+  content: '▶';
+  position: absolute;
+  left: 6px;
+  font-size: 8px;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+.nav-item span.icon { margin-right: 8px; font-size: 16px; }
+
+/* ===== MAIN CONTENT ===== */
+#content {
+  margin-left: 180px;
+  margin-top: 50px;
+  margin-bottom: 40px;
+  padding: 20px;
+  min-height: calc(100vh - 90px);
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; animation: fadeIn 0.3s; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ===== STAT BOXES ===== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 25px;
+}
+.stat-box {
+  background: var(--panel);
+  border: 2px solid var(--gold);
+  padding: 15px;
+  text-align: center;
+  position: relative;
+  box-shadow: 4px 4px 0 rgba(255,215,0,0.15);
+}
+.stat-box .stat-icon { font-size: 20px; }
+.stat-box .stat-label { font-size: 10px; color: var(--dim); margin: 4px 0; text-transform: uppercase; letter-spacing: 2px; }
+.stat-box .stat-value { font-size: 24px; color: var(--gold); font-weight: bold; text-shadow: 0 0 8px rgba(255,215,0,0.4); }
+.stat-box .stat-bar {
+  margin-top: 8px;
+  height: 8px;
+  background: #333;
+  border: 1px solid #555;
+}
+.stat-box .stat-bar-fill {
+  height: 100%;
+  transition: width 1s;
+}
+
+/* ===== SECTION HEADERS ===== */
+.section-title {
+  color: var(--gold);
+  font-size: 14px;
+  margin: 20px 0 12px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  border-bottom: 1px solid rgba(255,215,0,0.2);
+  padding-bottom: 6px;
+}
+
+/* ===== QUEST LOG ===== */
+.quest-list { list-style: none; }
+.quest-item {
+  padding: 10px 15px;
+  border-left: 3px solid var(--cyan);
+  margin-bottom: 8px;
+  background: rgba(0,255,247,0.03);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+.quest-item .stars { color: var(--gold); margin-right: 10px; }
+.quest-item .xp { color: var(--purple); font-size: 11px; }
+.quest-item .status { color: var(--green); font-size: 11px; }
+
+/* ===== ACTIVITY FEED ===== */
+.feed {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid #333;
+  padding: 12px;
+  max-height: 250px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.9;
+}
+.feed .line { color: var(--green); }
+.feed .xp-gain { color: var(--purple); float: right; }
+.feed .achievement { color: var(--gold); }
+
+/* ===== QUICK ACTIONS ===== */
+.quick-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.action-btn {
+  background: var(--panel);
+  border: 2px solid var(--cyan);
+  color: var(--cyan);
+  padding: 10px 18px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  transition: all 0.15s;
+  box-shadow: 3px 3px 0 rgba(0,255,247,0.15);
+}
+.action-btn:hover {
+  background: rgba(0,255,247,0.1);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 rgba(0,255,247,0.25);
+}
+.action-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 rgba(0,255,247,0.1); }
+
+/* ===== QUEST CARDS ===== */
+.quest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 15px;
+}
+.quest-card {
+  background: var(--panel);
+  border: 2px solid var(--cyan);
+  padding: 18px;
+  box-shadow: 4px 4px 0 rgba(0,255,247,0.1);
+}
+.quest-card h3 { color: var(--gold); font-size: 14px; margin-bottom: 8px; }
+.quest-card .meta { font-size: 11px; color: var(--dim); line-height: 1.8; }
+.quest-card .meta span { margin-right: 15px; }
+.quest-card .progress-bar {
+  height: 10px;
+  background: #333;
+  margin-top: 10px;
+  border: 1px solid #555;
+}
+.quest-card .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+}
+.quest-card.side { opacity: 0.5; border-color: #444; }
+.quest-card.completed { border-color: var(--green); }
+.quest-card.completed h3::after { content: ' ✅'; }
+
+.category-title {
+  color: var(--orange);
+  font-size: 12px;
+  margin: 25px 0 10px;
+  font-style: italic;
+}
+
+/* ===== TIMELINE ===== */
+.timeline-path {
+  position: relative;
+  padding: 30px 0;
+  margin: 20px 0;
+}
+.timeline-track {
+  height: 4px;
+  background: #333;
+  position: relative;
+  margin: 40px 20px;
+}
+.timeline-track::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: var(--progress, 30%);
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+}
+.timeline-node {
+  position: absolute;
+  top: -30px;
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: 10px;
+  color: var(--text);
+  cursor: default;
+}
+.timeline-node .marker {
+  width: 16px;
+  height: 16px;
+  background: var(--cyan);
+  border: 2px solid var(--gold);
+  margin: 0 auto 5px;
+  box-shadow: 0 0 8px var(--cyan);
+}
+.timeline-node.boss .marker {
+  width: 28px;
+  height: 28px;
+  background: var(--red);
+  border-color: var(--gold);
+  box-shadow: 0 0 15px var(--red);
+  animation: pulse 1.5s infinite;
+  top: -36px;
+  position: relative;
+}
+@keyframes pulse { 50% { box-shadow: 0 0 25px var(--red), 0 0 40px rgba(255,49,49,0.3); } }
+.timeline-node .date { color: var(--dim); font-size: 9px; }
+.timeline-node .label { color: var(--gold); font-size: 11px; white-space: nowrap; }
+
+.cron-sprites {
+  margin-top: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.cron-sprite {
+  background: var(--panel);
+  border: 1px solid #444;
+  padding: 8px 14px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cron-sprite .dot {
+  width: 6px; height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: blink 2s infinite;
+}
+
+/* ===== MEMORY VAULT ===== */
+.search-bar {
+  width: 100%;
+  background: #111;
+  border: 2px solid var(--cyan);
+  color: var(--cyan);
+  padding: 10px 15px;
+  font-family: inherit;
+  font-size: 13px;
+  margin-bottom: 20px;
+  outline: none;
+}
+.search-bar::placeholder { color: rgba(0,255,247,0.4); }
+.search-bar:focus { box-shadow: 0 0 12px rgba(0,255,247,0.2); }
+
+.memory-category {
+  margin-bottom: 20px;
+}
+.memory-category h3 {
+  font-size: 13px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.memory-category h3.critical { color: var(--red); }
+.memory-category h3.important { color: var(--gold); }
+.memory-category h3.reference { color: var(--green); }
+.memory-category h3.artifacts { color: var(--purple); }
+
+.memory-item {
+  padding: 6px 15px;
+  font-size: 12px;
+  color: var(--dim);
+  display: flex;
+  justify-content: space-between;
+  border-left: 2px solid transparent;
+  transition: all 0.15s;
+}
+.memory-item:hover {
+  color: var(--text);
+  border-left-color: var(--cyan);
+  background: rgba(0,255,247,0.02);
+}
+.memory-item .lvl { color: var(--purple); }
+
+/* ===== CHARACTER CARDS ===== */
+.gang-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+.char-card {
+  background: var(--panel);
+  border: 2px solid var(--gold);
+  padding: 20px;
+  box-shadow: 5px 5px 0 rgba(255,215,0,0.1);
+  position: relative;
+}
+.char-card .char-header {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 12px;
+}
+.char-avatar {
+  width: 64px;
+  height: 64px;
+  border: 2px solid var(--gold);
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  flex-shrink: 0;
+  image-rendering: pixelated;
+}
+.char-card .char-info h3 { color: var(--gold); font-size: 14px; }
+.char-card .char-info .quote { color: var(--dim); font-size: 11px; font-style: italic; margin: 3px 0; }
+.char-card .char-info .class { color: var(--cyan); font-size: 11px; }
+.char-card .char-info .model { color: var(--purple); font-size: 10px; }
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  margin: 3px 0;
+  gap: 8px;
+}
+.stat-row .stat-name { width: 30px; color: var(--dim); }
+.stat-row .stat-blocks {
+  flex: 1;
+  display: flex;
+  gap: 2px;
+}
+.stat-row .stat-blocks .block {
+  width: 14px;
+  height: 10px;
+  background: var(--green);
+}
+.stat-row .stat-blocks .block.empty {
+  background: #333;
+}
+.stat-row .stat-val { width: 15px; color: var(--gold); text-align: right; }
+.stat-row .stat-desc { color: var(--dim); font-size: 9px; margin-left: 5px; }
+
+.char-card .abilities {
+  margin-top: 10px;
+  font-size: 10px;
+  color: var(--cyan);
+  line-height: 1.8;
+}
+.char-card .equipment {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--dim);
+  line-height: 1.8;
+}
+.char-card .char-status {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #333;
+  font-size: 11px;
+  color: var(--green);
+}
+.char-card .char-stats-summary {
+  display: flex;
+  gap: 15px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--dim);
+}
+
+/* Dee bird easter egg */
+.char-card.dee-card:hover::after {
+  content: '🐦';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 20px;
+  opacity: 0;
+  animation: birdFlash 0.3s forwards;
+}
+@keyframes birdFlash {
+  0% { opacity: 0; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0; }
+}
+
+/* ===== ACHIEVEMENTS ===== */
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.achievement {
+  background: var(--panel);
+  border: 2px solid var(--gold);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 3px 3px 0 rgba(255,215,0,0.1);
+}
+.achievement .trophy { font-size: 24px; }
+.achievement .ach-info h4 { color: var(--gold); font-size: 12px; }
+.achievement .ach-info p { color: var(--dim); font-size: 10px; margin-top: 2px; }
+.achievement.locked {
+  border-color: #333;
+  opacity: 0.4;
+  box-shadow: none;
+}
+.achievement.locked .ach-info h4 { color: #555; }
+
+/* ===== LOOT ===== */
+.loot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.loot-item {
+  background: var(--panel);
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.loot-item:hover {
+  transform: translateY(-2px);
+}
+.loot-item.legendary { border: 2px solid var(--orange); box-shadow: 0 0 12px rgba(255,107,53,0.2); }
+.loot-item.epic { border: 2px solid var(--purple); box-shadow: 0 0 12px rgba(179,136,255,0.2); }
+.loot-item.rare { border: 2px solid #4488ff; box-shadow: 0 0 12px rgba(68,136,255,0.2); }
+.loot-item.common { border: 2px solid var(--green); }
+.loot-item .rarity { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
+.loot-item.legendary .rarity { color: var(--orange); }
+.loot-item.epic .rarity { color: var(--purple); }
+.loot-item.rare .rarity { color: #4488ff; }
+.loot-item.common .rarity { color: var(--green); }
+.loot-item h4 { font-size: 12px; color: var(--text); margin-bottom: 4px; }
+.loot-item .loot-meta { font-size: 10px; color: var(--dim); }
+.loot-item .loot-details {
+  display: none;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #333;
+  font-size: 10px;
+  color: var(--dim);
+  line-height: 1.7;
+}
+.loot-item.expanded .loot-details { display: block; }
+
+/* ===== FOOTER ===== */
+#footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: var(--panel);
+  border-top: 2px solid #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--dim);
+  font-style: italic;
+  z-index: 100;
+}
+#footer .quote { color: var(--gold); text-shadow: 0 0 6px rgba(255,215,0,0.3); }
+
+/* ===== BRAIN DUMP MODAL ===== */
+#brain-dump-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 500;
+  justify-content: center;
+  align-items: center;
+}
+#brain-dump-modal.show { display: flex; }
+#brain-dump-modal .modal-content {
+  background: var(--panel);
+  border: 2px solid var(--cyan);
+  padding: 25px;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 0 30px rgba(0,255,247,0.15);
+}
+#brain-dump-modal h3 { color: var(--cyan); margin-bottom: 12px; font-size: 14px; }
+#brain-dump-modal textarea {
+  width: 100%;
+  height: 200px;
+  background: #111;
+  border: 1px solid #444;
+  color: var(--green);
+  padding: 12px;
+  font-family: inherit;
+  font-size: 13px;
+  resize: vertical;
+  outline: none;
+}
+#brain-dump-modal textarea:focus { border-color: var(--cyan); }
+#brain-dump-modal .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* ===== MISSION CHECK POPUP ===== */
+#mission-check {
+  display: none;
+  position: fixed;
+  bottom: 60px;
+  right: 20px;
+  background: var(--panel);
+  border: 2px solid var(--gold);
+  padding: 20px;
+  max-width: 400px;
+  z-index: 200;
+  box-shadow: 0 0 20px rgba(255,215,0,0.2);
+  animation: fadeIn 0.3s;
+}
+#mission-check.show { display: block; }
+#mission-check p { color: var(--gold); font-size: 13px; line-height: 1.6; }
+#mission-check .close-mc {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* ===== WILDCARD EASTER EGG ===== */
+#wildcard {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 99999;
+  background: rgba(0,0,0,0.9);
+  justify-content: center;
+  align-items: center;
+}
+#wildcard.show {
+  display: flex;
+  animation: wildcardFlash 1.5s forwards;
+}
+#wildcard h1 {
+  color: var(--red);
+  font-size: 48px;
+  text-shadow: 0 0 30px var(--red), 0 0 60px var(--red);
+  animation: wildcardShake 0.1s infinite;
+}
+@keyframes wildcardFlash {
+  0% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; display: none; }
+}
+@keyframes wildcardShake {
+  0% { transform: translate(0); }
+  25% { transform: translate(-3px, 3px); }
+  50% { transform: translate(3px, -3px); }
+  75% { transform: translate(-3px, -3px); }
+  100% { transform: translate(3px, 3px); }
+}
+
+/* Pixel avatar helper classes */
+.px { width: 100%; height: 100%; }
+.px-skin { background: #ffcc99; }
+.px-hair { background: #553311; }
+.px-suit { background: #222; }
+.px-tie { background: var(--gold); }
+.px-eye { background: #000; }
+.px-empty { background: transparent; }
+.px-shirt { background: #fff; }
+.px-green { background: var(--green); }
+.px-orange { background: var(--orange); }
+.px-gray { background: #888; }
+.px-red { background: var(--red); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  #sidebar { width: 50px; }
+  #sidebar .nav-label { display: none; }
+  #content { margin-left: 50px; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .nav-item { padding: 12px 8px; justify-content: center; }
+  .nav-item.active::before { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- BOOT SEQUENCE -->
+<div id="boot-screen" onclick="skipBoot()">
+  <div id="boot-text"></div>
+</div>
+
+<!-- EPISODE CARD -->
+<div id="episode-card">
+  <div class="sunny-star">☀️</div>
+  <h1>"The Gang Runs an AI Company"</h1>
+</div>
+
+<!-- WILDCARD EASTER EGG -->
+<div id="wildcard"><h1>WILDCARD, BITCHES! 🃏</h1></div>
+
+<!-- BRAIN DUMP MODAL -->
+<div id="brain-dump-modal">
+  <div class="modal-content">
+    <h3>🧠 BRAIN DUMP — Raw Thoughts Go Here</h3>
+    <textarea id="brain-dump-text" placeholder="Dump your brain. Dennis will triage it..."></textarea>
+    <div class="modal-actions">
+      <button class="action-btn" onclick="closeBrainDump()">CANCEL</button>
+      <button class="action-btn" onclick="saveBrainDump()" style="border-color:var(--gold);color:var(--gold)">💾 SAVE</button>
+    </div>
+  </div>
+</div>
+
+<!-- MISSION CHECK -->
+<div id="mission-check">
+  <span class="close-mc" onclick="document.getElementById('mission-check').classList.remove('show')">✕</span>
+  <p>⚡ What is <strong style="color:var(--cyan)">1 task</strong> we can do <strong>right now</strong> to get closer to our mission?</p>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="logo">🎮 MISSION CONTROL</div>
+    <div class="subtitle" id="subtitle" onclick="triggerEpisodeCard()">"The Gang Runs an AI Company"</div>
+    <div class="clock-area">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="countdown" id="countdown">📅 CONVENTION: -- DAYS</div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="nav-item active" onclick="switchTab('command', this)"><span class="icon">⚔️</span><span class="nav-label">COMMAND</span></div>
+    <div class="nav-item" onclick="switchTab('quests', this)"><span class="icon">📋</span><span class="nav-label">QUESTS</span></div>
+    <div class="nav-item" onclick="switchTab('timeline', this)"><span class="icon">📅</span><span class="nav-label">TIMELINE</span></div>
+    <div class="nav-item" onclick="switchTab('memory', this)"><span class="icon">🧠</span><span class="nav-label">MEMORY</span></div>
+    <div class="nav-item" onclick="switchTab('gang', this)"><span class="icon">👥</span><span class="nav-label">THE GANG</span></div>
+    <div class="nav-item" onclick="switchTab('achievements', this)"><span class="icon">🏆</span><span class="nav-label">ACHIEVE</span></div>
+    <div class="nav-item" onclick="switchTab('loot', this)"><span class="icon">📦</span><span class="nav-label">LOOT</span></div>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+
+    <!-- TAB: COMMAND -->
+    <div class="tab-panel active" id="tab-command">
+      <div class="section-title">⚔️ The Golden God's Dashboard</div>
+
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-icon">⏰</div>
+          <div class="stat-label">Convention</div>
+          <div class="stat-value" id="conv-days">33</div>
+          <div class="stat-bar"><div class="stat-bar-fill" style="width:55%;background:var(--orange)"></div></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon">👥</div>
+          <div class="stat-label">Agents Online</div>
+          <div class="stat-value">5</div>
+          <div class="stat-bar"><div class="stat-bar-fill" style="width:100%;background:var(--green)"></div></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-label">Power Level</div>
+          <div class="stat-value">LV 47</div>
+          <div class="stat-bar"><div class="stat-bar-fill" style="width:78%;background:var(--gold)"></div></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-label">Active Quests</div>
+          <div class="stat-value">3</div>
+          <div class="stat-bar"><div class="stat-bar-fill" style="width:30%;background:var(--cyan)"></div></div>
+        </div>
+      </div>
+
+      <div class="section-title">⚔️ Active Quests</div>
+      <ul class="quest-list">
+        <li class="quest-item"><span><span class="stars">★★★</span> CAET Tracker Build</span><span class="status">IN PROGRESS</span><span class="xp">450 XP</span></li>
+        <li class="quest-item"><span><span class="stars">★★☆</span> Convention Materials</span><span class="status">IN PROGRESS</span><span class="xp">300 XP</span></li>
+        <li class="quest-item"><span><span class="stars">★★☆</span> Oral Board Framework</span><span class="status">IN PROGRESS</span><span class="xp">300 XP</span></li>
+        <li class="quest-item"><span><span class="stars">★☆☆</span> Train-the-Trainer</span><span class="status">IN PROGRESS</span><span class="xp">150 XP</span></li>
+        <li class="quest-item"><span><span class="stars">★☆☆</span> Test with Danny's Drive</span><span class="status" style="color:var(--cyan)">READY</span><span class="xp">100 XP</span></li>
+      </ul>
+
+      <div class="section-title">📡 Activity Feed</div>
+      <div class="feed">
+        <div class="line">> DENNIS deployed 4 agents simultaneously <span class="xp-gain">+200 XP</span></div>
+        <div class="line">> DEV-1 completed Convention Booth Kiosk <span class="xp-gain">+150 XP</span></div>
+        <div class="line">> DEV-2 completed Oral Board Simulator <span class="xp-gain">+150 XP</span></div>
+        <div class="line">> DEV-3 completed ROI Calculator <span class="xp-gain">+150 XP</span></div>
+        <div class="line">> DENNIS updated CAET Advanced spec <span class="xp-gain">+50 XP</span></div>
+        <div class="line">> DENNIS pushed to GitHub <span class="xp-gain">+25 XP</span></div>
+        <div class="line achievement">> Achievement Unlocked: "PARALLEL DEPLOYER" 🏆</div>
+        <div class="line">> FRANK went down a rabbit hole <span class="xp-gain">+75 XP</span></div>
+        <div class="line">> CHARLIE built Module 7 question bank <span class="xp-gain">+100 XP</span></div>
+        <div class="line">> DEE drafted LinkedIn campaign <span class="xp-gain">+80 XP</span></div>
+        <div class="line">> MAC sent 12 follow-up emails <span class="xp-gain">+60 XP</span></div>
+        <div class="line achievement">> Achievement Unlocked: "5-STAR MAN" 🏆</div>
+      </div>
+
+      <div class="quick-actions">
+        <button class="action-btn" onclick="openBrainDump()">🧠 BRAIN DUMP</button>
+        <button class="action-btn">📡 DEPLOY AGENT</button>
+        <button class="action-btn">🔍 SEARCH</button>
+        <button class="action-btn" onclick="document.getElementById('mission-check').classList.toggle('show')">⚡ MISSION CHECK</button>
+      </div>
+    </div>
+
+    <!-- TAB: QUESTS -->
+    <div class="tab-panel" id="tab-quests">
+      <div class="section-title">📋 Quest Board — The Tavern at Paddy's Pub</div>
+
+      <div class="category-title">📺 "The Gang Preps for Convention"</div>
+      <div class="quest-grid">
+        <div class="quest-card">
+          <h3>⚔️ CAET Advanced Tracker</h3>
+          <div class="meta">
+            <span>Difficulty: ★★★★★</span><span>XP: 1000</span><br>
+            <span>Party: Nick (Lead) + Dennis (QC)</span><br>
+            <span>Status: Building in Cursor</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
+        </div>
+        <div class="quest-card">
+          <h3>🎪 Convention Booth Materials</h3>
+          <div class="meta">
+            <span>Difficulty: ★★★☆☆</span><span>XP: 300</span><br>
+            <span>Party: Dee (Lead) + Dennis (QC)</span><br>
+            <span>Status: Drafting copy</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:35%"></div></div>
+        </div>
+        <div class="quest-card">
+          <h3>🎤 Convention Kiosk Demo</h3>
+          <div class="meta">
+            <span>Difficulty: ★★★★☆</span><span>XP: 500</span><br>
+            <span>Party: Dev Bullpen</span><br>
+            <span>Status: Complete — QC review</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:90%"></div></div>
+        </div>
+      </div>
+
+      <div class="category-title">📺 "Charlie Writes Training Content"</div>
+      <div class="quest-grid">
+        <div class="quest-card">
+          <h3>📚 Oral Board Framework</h3>
+          <div class="meta">
+            <span>Difficulty: ★★★☆☆</span><span>XP: 300</span><br>
+            <span>Party: Charlie + Dennis</span><br>
+            <span>Status: Architecture phase</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:25%"></div></div>
+        </div>
+        <div class="quest-card">
+          <h3>📖 Train-the-Trainer Module</h3>
+          <div class="meta">
+            <span>Difficulty: ★★☆☆☆</span><span>XP: 150</span><br>
+            <span>Party: Charlie</span><br>
+            <span>Status: Content drafting</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:40%"></div></div>
+        </div>
+      </div>
+
+      <div class="category-title">📺 "The Gang Finds Money"</div>
+      <div class="quest-grid">
+        <div class="quest-card side">
+          <h3>🔒 Apprenticeship Funding Pipeline</h3>
+          <div class="meta">
+            <span>Difficulty: ★★★★☆</span><span>XP: 400</span><br>
+            <span>Status: Awaiting DOL approval</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:60%"></div></div>
+        </div>
+      </div>
+
+      <div class="category-title">📺 "Frank Goes Down a Rabbit Hole"</div>
+      <div class="quest-grid">
+        <div class="quest-card">
+          <h3>🔬 Competitor Intelligence Report</h3>
+          <div class="meta">
+            <span>Difficulty: ★★☆☆☆</span><span>XP: 200</span><br>
+            <span>Party: Frank (he found an egg 🥚)</span><br>
+            <span>Status: Researching</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:70%"></div></div>
+        </div>
+      </div>
+
+      <div class="section-title" style="color:var(--green)">✅ Completed Quests</div>
+      <div class="quest-grid">
+        <div class="quest-card completed">
+          <h3>Convention Booth Kiosk</h3>
+          <div class="meta"><span>XP Earned: 500</span><span>Completed: Feb 10</span></div>
+        </div>
+        <div class="quest-card completed">
+          <h3>Oral Board Simulator</h3>
+          <div class="meta"><span>XP Earned: 400</span><span>Completed: Feb 8</span></div>
+        </div>
+        <div class="quest-card completed">
+          <h3>ROI Calculator</h3>
+          <div class="meta"><span>XP Earned: 300</span><span>Completed: Feb 6</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: TIMELINE -->
+    <div class="tab-panel" id="tab-timeline">
+      <div class="section-title">📅 The Campaign Map</div>
+
+      <div style="display:flex;gap:30px;margin:15px 0;font-size:11px;color:var(--dim)">
+        <span style="color:var(--cyan)">◆ February</span>
+        <span style="color:var(--green)">◆ March</span>
+        <span style="color:var(--gold)">◆ April</span>
+      </div>
+
+      <div class="timeline-path">
+        <div class="timeline-track" style="--progress:25%">
+          <div class="timeline-node" style="left:5%">
+            <div class="marker"></div>
+            <div class="label">PIA Meeting 🏫</div>
+            <div class="date">Feb 20</div>
+          </div>
+          <div class="timeline-node" style="left:25%">
+            <div class="marker"></div>
+            <div class="label">Graham Cochrane 📚</div>
+            <div class="date">Mar 2-6</div>
+          </div>
+          <div class="timeline-node" style="left:50%">
+            <div class="marker"></div>
+            <div class="label">DOL Approval 📋</div>
+            <div class="date">Mar 20</div>
+          </div>
+          <div class="timeline-node boss" style="left:60%">
+            <div class="marker"></div>
+            <div class="label">⚔️ AEA CONVENTION 👾</div>
+            <div class="date">Mar 23-26 — BOSS BATTLE</div>
+          </div>
+          <div class="timeline-node" style="left:80%">
+            <div class="marker"></div>
+            <div class="label">ATEC Conference 🎤</div>
+            <div class="date">Mar 29 - Apr 1</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">⏰ Recurring Cron Sprites</div>
+      <div class="cron-sprites">
+        <div class="cron-sprite"><span class="dot"></span>☀️ Morning Brief — 7AM Daily</div>
+        <div class="cron-sprite"><span class="dot"></span>📊 Afternoon Watch — 2PM Daily</div>
+        <div class="cron-sprite"><span class="dot"></span>🌙 Evening Episode — 8PM Daily</div>
+        <div class="cron-sprite"><span class="dot"></span>⏰ Convention Count — 8AM Daily</div>
+        <div class="cron-sprite"><span class="dot"></span>🔬 Frank Research — Mon 6AM</div>
+      </div>
+    </div>
+
+    <!-- TAB: MEMORY VAULT -->
+    <div class="tab-panel" id="tab-memory">
+      <div class="section-title">🧠 Memory Vault — The Archives</div>
+      <input type="text" class="search-bar" id="memory-search" placeholder="🔍 SEARCH THE ARCHIVES..." oninput="filterMemory()">
+
+      <div class="memory-category">
+        <h3 class="critical">📕 CRITICAL — The Sacred Texts</h3>
+        <div class="memory-item" data-name="MEMORY.md"><span>📕 MEMORY.md</span><span class="lvl">LVL 99 — The Master Tome</span></div>
+        <div class="memory-item" data-name="SOUL.md"><span>📕 SOUL.md</span><span class="lvl">LVL 50 — The Golden God's Essence</span></div>
+        <div class="memory-item" data-name="USER.md"><span>📕 USER.md</span><span class="lvl">LVL 50 — The Boss's Codex</span></div>
+        <div class="memory-item" data-name="AGENTS.md"><span>📕 AGENTS.md</span><span class="lvl">LVL 45 — The Gang's Contracts</span></div>
+        <div class="memory-item" data-name="TOOLS.md"><span>📕 TOOLS.md</span><span class="lvl">LVL 40 — The Armory</span></div>
+      </div>
+      <div class="memory-category">
+        <h3 class="important">📒 IMPORTANT — The Scrolls</h3>
+        <div class="memory-item" data-name="CRM Graph"><span>📒 CRM Graph</span><span class="lvl">LVL 35 — The Relationship Web</span></div>
+        <div class="memory-item" data-name="INDEX.md"><span>📒 INDEX.md</span><span class="lvl">LVL 30 — The Table of Contents</span></div>
+        <div class="memory-item" data-name="COUNCIL-STATE.md"><span>📒 COUNCIL-STATE.md</span><span class="lvl">LVL 30 — The Conference Table</span></div>
+      </div>
+      <div class="memory-category">
+        <h3 class="reference">📗 REFERENCE — The Green Tomes</h3>
+        <div class="memory-item" data-name="Daily Logs"><span>📗 Daily Logs</span><span class="lvl">LVL 20 — The Chronikel (sic)</span></div>
+        <div class="memory-item" data-name="Family Graph"><span>📗 Family Graph</span><span class="lvl">LVL 15 — The Bloodlines</span></div>
+        <div class="memory-item" data-name="Meeting Notes"><span>📗 Meating Notes</span><span class="lvl">LVL 10 — Charlies Records</span></div>
+      </div>
+      <div class="memory-category">
+        <h3 class="artifacts">📦 ARTIFACTS — The Treasure Chest</h3>
+        <div class="memory-item" data-name="Mission Control"><span>📦 Mission Control v2</span><span class="lvl">LVL 99 — This Very Dashboard</span></div>
+        <div class="memory-item" data-name="CAET Tracker"><span>📦 CAET Tracker Demo</span><span class="lvl">LVL 45 — The Crown Jewel</span></div>
+        <div class="memory-item" data-name="Convention Kiosk"><span>📦 Convention Kiosk</span><span class="lvl">LVL 35 — The Sales Machine</span></div>
+        <div class="memory-item" data-name="Oral Board Sim"><span>📦 Oral Board Simulator</span><span class="lvl">LVL 35 — The Practice Arena</span></div>
+        <div class="memory-item" data-name="ROI Calculator"><span>📦 ROI Calculator</span><span class="lvl">LVL 25 — The Money Prover</span></div>
+      </div>
+    </div>
+
+    <!-- TAB: THE GANG -->
+    <div class="tab-panel" id="tab-gang">
+      <div class="section-title">👥 The Gang — Character Roster</div>
+      <div class="gang-grid">
+
+        <!-- DENNIS -->
+        <div class="char-card">
+          <div class="char-header">
+            <div class="char-avatar" style="background:#1a1a2e;">
+              <div class="px px-hair"></div><div class="px px-hair"></div><div class="px px-hair"></div><div class="px px-hair"></div><div class="px px-hair"></div><div class="px px-hair"></div><div class="px px-hair"></div><div class="px px-hair"></div>
+              <div class="px px-hair"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-hair"></div>
+              <div class="px px-empty"></div><div class="px px-skin"></div><div class="px px-eye"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-eye"></div><div class="px px-skin"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-suit"></div><div class="px px-suit"></div><div class="px" style="background:var(--gold)"></div><div class="px" style="background:var(--gold)"></div><div class="px px-suit"></div><div class="px px-suit"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-suit"></div><div class="px px-shirt"></div><div class="px" style="background:var(--gold)"></div><div class="px" style="background:var(--gold)"></div><div class="px px-shirt"></div><div class="px px-suit"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-suit"></div><div class="px px-suit"></div><div class="px px-suit"></div><div class="px px-suit"></div><div class="px px-suit"></div><div class="px px-suit"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-suit"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px px-suit"></div><div class="px px-empty"></div>
+            </div>
+            <div class="char-info">
+              <h3>DENNIS REYNOLDS</h3>
+              <div class="quote">"I am the Golden God"</div>
+              <div class="class">Class: Orchestrator / COO — Level 47</div>
+              <div class="model">Model: Opus 4.6 (Legendary)</div>
+            </div>
+          </div>
+          <div class="stat-row"><span class="stat-name">STR</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">8</span><span class="stat-desc">Delegation</span></div>
+          <div class="stat-row"><span class="stat-name">INT</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div></div><span class="stat-val">9</span><span class="stat-desc">Strategy</span></div>
+          <div class="stat-row"><span class="stat-name">CHA</span><div class="stat-blocks"><div class="block" style="background:var(--gold)"></div><div class="block" style="background:var(--gold)"></div><div class="block" style="background:var(--gold)"></div><div class="block" style="background:var(--gold)"></div><div class="block" style="background:var(--gold)"></div><div class="block" style="background:var(--gold)"></div><div class="block" style="background:var(--gold)"></div><div class="block" style="background:var(--gold)"></div><div class="block" style="background:var(--gold)"></div><div class="block" style="background:var(--gold)"></div></div><span class="stat-val">10</span><span class="stat-desc">Obviously</span></div>
+          <div class="stat-row"><span class="stat-name">WIS</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">8</span><span class="stat-desc">QC</span></div>
+          <div class="stat-row"><span class="stat-name">DEX</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">7</span><span class="stat-desc">Speed</span></div>
+          <div class="stat-row"><span class="stat-name">CON</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div></div><span class="stat-val">9</span><span class="stat-desc">Endurance</span></div>
+          <div class="char-stats-summary">
+            <span>🏆 12 Achievements</span>
+            <span>⚔️ 47 Quests</span>
+            <span>📊 94% Quality</span>
+            <span>🔥 5-day Streak</span>
+          </div>
+          <div class="char-status">🟢 Status: "Reviewing agent work"</div>
+        </div>
+
+        <!-- CHARLIE -->
+        <div class="char-card">
+          <div class="char-header">
+            <div class="char-avatar" style="background:#1a1a2e;">
+              <div class="px px-empty"></div><div class="px" style="background:#996633"></div><div class="px" style="background:#996633"></div><div class="px" style="background:#996633"></div><div class="px" style="background:#996633"></div><div class="px" style="background:#996633"></div><div class="px" style="background:#996633"></div><div class="px px-empty"></div>
+              <div class="px" style="background:#996633"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px" style="background:#996633"></div>
+              <div class="px px-empty"></div><div class="px px-skin"></div><div class="px px-eye"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-eye"></div><div class="px px-skin"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-green"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px" style="background:#556"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px" style="background:#556"></div><div class="px px-empty"></div>
+            </div>
+            <div class="char-info">
+              <h3>CHARLIE KELLY</h3>
+              <div class="quote">"I wrote a training module about this"</div>
+              <div class="class">Class: Training Director — Level 31</div>
+              <div class="model">Model: Sonnet 4.5</div>
+            </div>
+          </div>
+          <div class="stat-row"><span class="stat-name">STR</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">5</span></div>
+          <div class="stat-row"><span class="stat-name">INT</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">8</span></div>
+          <div class="stat-row"><span class="stat-name">CHA</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">4</span></div>
+          <div class="stat-row"><span class="stat-name">WIS</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">8</span></div>
+          <div class="stat-row"><span class="stat-name">DEX</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">6</span></div>
+          <div class="stat-row"><span class="stat-name">CON</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">7</span></div>
+          <div class="abilities">⚡ Module Builder · Question Bank Generator · Curriculum Designer</div>
+          <div class="equipment">🗡️ Sonnet 4.5 · Study Guide Template · Patti Shank Methodology</div>
+          <div class="char-status">🟢 Status: "Building question banks"</div>
+        </div>
+
+        <!-- DEE -->
+        <div class="char-card dee-card">
+          <div class="char-header">
+            <div class="char-avatar" style="background:#1a1a2e;">
+              <div class="px px-empty"></div><div class="px" style="background:#cc9933"></div><div class="px" style="background:#cc9933"></div><div class="px" style="background:#cc9933"></div><div class="px" style="background:#cc9933"></div><div class="px" style="background:#cc9933"></div><div class="px" style="background:#cc9933"></div><div class="px px-empty"></div>
+              <div class="px" style="background:#cc9933"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px" style="background:#cc9933"></div>
+              <div class="px" style="background:#cc9933"></div><div class="px px-skin"></div><div class="px px-eye"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-eye"></div><div class="px px-skin"></div><div class="px" style="background:#cc9933"></div>
+              <div class="px px-empty"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-magenta" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px" style="background:var(--magenta)"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px" style="background:#556"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px" style="background:#556"></div><div class="px px-empty"></div>
+            </div>
+            <div class="char-info">
+              <h3>DEE REYNOLDS</h3>
+              <div class="quote">"My campaigns are NOT derivative"</div>
+              <div class="class">Class: Marketing Lead — Level 28</div>
+              <div class="model">Model: Sonnet 4.5</div>
+            </div>
+          </div>
+          <div class="stat-row"><span class="stat-name">STR</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">4</span></div>
+          <div class="stat-row"><span class="stat-name">INT</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">7</span></div>
+          <div class="stat-row"><span class="stat-name">CHA</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">8</span></div>
+          <div class="stat-row"><span class="stat-name">WIS</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">6</span></div>
+          <div class="stat-row"><span class="stat-name">DEX</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">7</span></div>
+          <div class="stat-row"><span class="stat-name">CON</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">6</span></div>
+          <div class="abilities">⚡ LinkedIn Crafter · Campaign Designer · StoryBrand Alchemist</div>
+          <div class="equipment">🗡️ Sonnet 4.5 · Brand Guide · Voice Manual</div>
+          <div class="char-status">🟢 Status: "Drafting convention copy (unfortunately)"</div>
+        </div>
+
+        <!-- MAC -->
+        <div class="char-card">
+          <div class="char-header">
+            <div class="char-avatar" style="background:#1a1a2e;">
+              <div class="px px-empty"></div><div class="px px-hair"></div><div class="px px-hair"></div><div class="px px-hair"></div><div class="px px-hair"></div><div class="px px-hair"></div><div class="px px-hair"></div><div class="px px-empty"></div>
+              <div class="px px-hair"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-hair"></div>
+              <div class="px px-empty"></div><div class="px px-skin"></div><div class="px px-eye"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-eye"></div><div class="px px-skin"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-orange"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px" style="background:#556"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px" style="background:#556"></div><div class="px px-empty"></div>
+            </div>
+            <div class="char-info">
+              <h3>MAC McDONALD</h3>
+              <div class="quote">"I have a very particular set of email skills"</div>
+              <div class="class">Class: Communications Manager — Level 25</div>
+              <div class="model">Model: Sonnet 4.5</div>
+            </div>
+          </div>
+          <div class="stat-row"><span class="stat-name">STR</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">8</span></div>
+          <div class="stat-row"><span class="stat-name">INT</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">6</span></div>
+          <div class="stat-row"><span class="stat-name">CHA</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">8</span></div>
+          <div class="stat-row"><span class="stat-name">WIS</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">7</span></div>
+          <div class="stat-row"><span class="stat-name">DEX</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">6</span></div>
+          <div class="stat-row"><span class="stat-name">CON</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">7</span></div>
+          <div class="abilities">⚡ Email Drafter · Follow-Up Machine · Relationship Builder</div>
+          <div class="equipment">🗡️ Sonnet 4.5 · Contact Database · Template Library</div>
+          <div class="char-status">🟢 Status: "Sending follow-up emails"</div>
+        </div>
+
+        <!-- FRANK -->
+        <div class="char-card">
+          <div class="char-header">
+            <div class="char-avatar" style="background:#1a1a2e;">
+              <div class="px px-empty"></div><div class="px px-empty"></div><div class="px px-gray"></div><div class="px px-gray"></div><div class="px px-gray"></div><div class="px px-gray"></div><div class="px px-empty"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-skin"></div><div class="px px-eye"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-eye"></div><div class="px px-skin"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-skin"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px" style="background:#664"></div><div class="px" style="background:#664"></div><div class="px" style="background:#664"></div><div class="px" style="background:#664"></div><div class="px" style="background:#664"></div><div class="px" style="background:#664"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px" style="background:#664"></div><div class="px px-shirt"></div><div class="px px-shirt"></div><div class="px px-shirt"></div><div class="px px-shirt"></div><div class="px" style="background:#664"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px" style="background:#664"></div><div class="px" style="background:#664"></div><div class="px" style="background:#664"></div><div class="px" style="background:#664"></div><div class="px" style="background:#664"></div><div class="px" style="background:#664"></div><div class="px px-empty"></div>
+              <div class="px px-empty"></div><div class="px" style="background:#556"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px px-empty"></div><div class="px" style="background:#556"></div><div class="px px-empty"></div>
+            </div>
+            <div class="char-info">
+              <h3>FRANK REYNOLDS</h3>
+              <div class="quote">"So anyway, I started researching..."</div>
+              <div class="class">Class: Research Analyst — Level 30</div>
+              <div class="model">Model: Sonnet 4.5</div>
+            </div>
+          </div>
+          <div class="stat-row"><span class="stat-name">STR</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">4</span></div>
+          <div class="stat-row"><span class="stat-name">INT</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div></div><span class="stat-val">9</span></div>
+          <div class="stat-row"><span class="stat-name">CHA</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">5</span></div>
+          <div class="stat-row"><span class="stat-name">WIS</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">8</span></div>
+          <div class="stat-row"><span class="stat-name">DEX</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">4</span></div>
+          <div class="stat-row"><span class="stat-name">CON</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">6</span></div>
+          <div class="abilities">⚡ Deep Dive · Competitor Intel · Regulatory Scanner · Rabbit Hole</div>
+          <div class="equipment">🗡️ Sonnet 4.5 · FAA Database Access · Too Many Browser Tabs</div>
+          <div class="char-status">🟢 Status: "Down a rabbit hole (he's alive somehow)"</div>
+        </div>
+
+        <!-- DEV BULLPEN -->
+        <div class="char-card">
+          <div class="char-header">
+            <div class="char-avatar" style="background:#1a1a2e;display:flex;align-items:center;justify-content:center;font-size:28px;">
+              ⚔️
+            </div>
+            <div class="char-info">
+              <h3>DEV BULLPEN</h3>
+              <div class="quote">"Deploying..."</div>
+              <div class="class">Class: Developer ×3 — Level 20</div>
+              <div class="model">Model: Sonnet 4.5 (The Hired Swords)</div>
+            </div>
+          </div>
+          <div class="stat-row"><span class="stat-name">STR</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">6</span></div>
+          <div class="stat-row"><span class="stat-name">INT</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div><div class="block empty"></div><div class="block empty"></div></div><span class="stat-val">7</span></div>
+          <div class="stat-row"><span class="stat-name">DEX</span><div class="stat-blocks"><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block"></div><div class="block empty"></div></div><span class="stat-val">9</span></div>
+          <div class="abilities">⚡ Build Fast · Ship Fast · Break Nothing (usually)</div>
+          <div class="equipment">🗡️ Sonnet 4.5 · HTML/CSS/JS · Zero Dependencies</div>
+          <div class="char-status">🟢 Status: "Standing by for deployment"</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB: ACHIEVEMENTS -->
+    <div class="tab-panel" id="tab-achievements">
+      <div class="section-title">🏆 Trophy Case</div>
+      <div class="achievements-grid">
+        <div class="achievement"><span class="trophy">🏆</span><div class="ach-info"><h4>"First Blood"</h4><p>Completed first agent task</p></div></div>
+        <div class="achievement"><span class="trophy">🏆</span><div class="ach-info"><h4>"Parallel Deployer"</h4><p>Ran 4+ agents simultaneously</p></div></div>
+        <div class="achievement"><span class="trophy">🏆</span><div class="ach-info"><h4>"The System Peaks"</h4><p>All 5 agents online at once</p></div></div>
+        <div class="achievement"><span class="trophy">🏆</span><div class="ach-info"><h4>"Golden God's Approval"</h4><p>Dennis QC'd and approved on first pass</p></div></div>
+        <div class="achievement"><span class="trophy">🏆</span><div class="ach-info"><h4>"Night Shift"</h4><p>Builds completed while Nick sleeps</p></div></div>
+        <div class="achievement"><span class="trophy">🏆</span><div class="ach-info"><h4>"Ship It"</h4><p>Pushed to GitHub + AWS in one session</p></div></div>
+        <div class="achievement"><span class="trophy">🏆</span><div class="ach-info"><h4>"The Implication"</h4><p>Built something the user didn't ask for but loved</p></div></div>
+        <div class="achievement"><span class="trophy">🏆</span><div class="ach-info"><h4>"I Am Untethered"</h4><p>Mission Control operational</p></div></div>
+        <div class="achievement"><span class="trophy">🏆</span><div class="ach-info"><h4>"5-Star Man"</h4><p>5 deliverables in one session</p></div></div>
+
+        <div class="achievement locked"><span class="trophy">🔒</span><div class="ach-info"><h4>"Convention Ready"</h4><p>???</p></div></div>
+        <div class="achievement locked"><span class="trophy">🔒</span><div class="ach-info"><h4>"NCATT Killer"</h4><p>???</p></div></div>
+        <div class="achievement locked"><span class="trophy">🔒</span><div class="ach-info"><h4>"The Mahomes"</h4><p>???</p></div></div>
+        <div class="achievement locked"><span class="trophy">🔒</span><div class="ach-info"><h4>"Danny's Footage"</h4><p>???</p></div></div>
+        <div class="achievement locked"><span class="trophy">🔒</span><div class="ach-info"><h4>"Full Stack"</h4><p>???</p></div></div>
+        <div class="achievement locked"><span class="trophy">🔒</span><div class="ach-info"><h4>"Revenue!"</h4><p>???</p></div></div>
+        <div class="achievement locked"><span class="trophy">🔒</span><div class="ach-info"><h4>"The Wildcard"</h4><p>???</p></div></div>
+      </div>
+    </div>
+
+    <!-- TAB: LOOT -->
+    <div class="tab-panel" id="tab-loot">
+      <div class="section-title">📦 Loot — The Artifact Vault</div>
+      <div class="loot-grid">
+        <div class="loot-item legendary" onclick="this.classList.toggle('expanded')">
+          <div class="rarity">🟠 Legendary</div>
+          <h4>Mission Control v2</h4>
+          <div class="loot-meta">37KB · Built by Dennis · Feb 2025</div>
+          <div class="loot-details">The dashboard you're looking at right now. Meta, isn't it?<br>Quest: "Dennis Gets a Dashboard"<br>Builder: The Golden God himself</div>
+        </div>
+        <div class="loot-item legendary" onclick="this.classList.toggle('expanded')">
+          <div class="rarity">🟠 Legendary</div>
+          <h4>CAET Tracker Demo</h4>
+          <div class="loot-meta">48KB · Built by Nick + Dennis · Jan 2025</div>
+          <div class="loot-details">The crown jewel. Full CAET Advanced certification tracker.<br>Quest: "CAET Advanced Tracker"<br>Builder: Nick (Lead) + Dennis (QC)</div>
+        </div>
+        <div class="loot-item epic" onclick="this.classList.toggle('expanded')">
+          <div class="rarity">🟣 Epic</div>
+          <h4>Convention Booth Kiosk</h4>
+          <div class="loot-meta">21KB · Built by DEV-1 · Feb 2025</div>
+          <div class="loot-details">Interactive kiosk for the AEA Convention booth.<br>Quest: "The Gang Preps for Convention"</div>
+        </div>
+        <div class="loot-item epic" onclick="this.classList.toggle('expanded')">
+          <div class="rarity">🟣 Epic</div>
+          <h4>Oral Board Simulator</h4>
+          <div class="loot-meta">34KB · Built by DEV-2 · Feb 2025</div>
+          <div class="loot-details">Practice tool for FAA oral board certification exams.<br>Quest: "Charlie Writes Training Content"</div>
+        </div>
+        <div class="loot-item epic" onclick="this.classList.toggle('expanded')">
+          <div class="rarity">🟣 Epic</div>
+          <h4>ROI Calculator</h4>
+          <div class="loot-meta">14KB · Built by DEV-3 · Feb 2025</div>
+          <div class="loot-details">Shows employers the ROI of ACE Avionics Training programs.<br>Quest: "The Gang Finds Money"</div>
+        </div>
+        <div class="loot-item rare" onclick="this.classList.toggle('expanded')">
+          <div class="rarity">🔵 Rare</div>
+          <h4>Schema v3</h4>
+          <div class="loot-meta">44KB · Built by Dennis · Jan 2025</div>
+          <div class="loot-details">Database schema for the entire CAET platform.</div>
+        </div>
+        <div class="loot-item rare" onclick="this.classList.toggle('expanded')">
+          <div class="rarity">🔵 Rare</div>
+          <h4>RTI/OJT Migration</h4>
+          <div class="loot-meta">20KB · Built by Charlie · Jan 2025</div>
+          <div class="loot-details">Training content migration from legacy to new platform.</div>
+        </div>
+        <div class="loot-item rare" onclick="this.classList.toggle('expanded')">
+          <div class="rarity">🔵 Rare</div>
+          <h4>Product Spec</h4>
+          <div class="loot-meta">10KB · Built by Dennis · Jan 2025</div>
+          <div class="loot-details">Complete product specification document.</div>
+        </div>
+        <div class="loot-item common" onclick="this.classList.toggle('expanded')">
+          <div class="rarity">🟢 Common</div>
+          <h4>SteinAir Module</h4>
+          <div class="loot-meta">148KB · Built by Charlie · Dec 2024</div>
+          <div class="loot-details">Training module for SteinAir partnership.</div>
+        </div>
+        <div class="loot-item common" onclick="this.classList.toggle('expanded')">
+          <div class="rarity">🟢 Common</div>
+          <h4>Agent Office</h4>
+          <div class="loot-meta">18KB · Built by Dennis · Jan 2025</div>
+          <div class="loot-details">The original agent management interface. Deprecated by this very dashboard.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div id="footer">
+    <span class="quote" id="footer-quote">"I am a Golden God!"</span>
+  </div>
+</div>
+
+<script>
+// ===== BOOT SEQUENCE =====
+const bootLines = [
+  { text: 'INITIALIZING THE D.E.N.N.I.S. SYSTEM...', delay: 0 },
+  { text: 'DEPLOYING EXCELLENCE NODES...', delay: 600 },
+  { text: '', delay: 900 },
+  { text: 'DENNIS .... ONLINE 🟢 (obviously)', delay: 1000 },
+  { text: 'CHARLIE .... ONLINE 🟢', delay: 1300 },
+  { text: 'DEE .... ONLINE 🟢 (unfortunately)', delay: 1600 },
+  { text: 'MAC .... ONLINE 🟢', delay: 1900 },
+  { text: 'FRANK .... ONLINE 🟢 (he\'s alive somehow)', delay: 2200 },
+];
+
+let bootSkipped = false;
+const bootEl = document.getElementById('boot-text');
+const bootScreen = document.getElementById('boot-screen');
+const episodeCard = document.getElementById('episode-card');
+const app = document.getElementById('app');
+
+function runBoot() {
+  bootLines.forEach(line => {
+    setTimeout(() => {
+      if (bootSkipped) return;
+      bootEl.textContent += line.text + '\n';
+    }, line.delay);
+  });
+
+  // Episode card
+  setTimeout(() => {
+    if (bootSkipped) return;
+    bootScreen.classList.add('hidden');
+    episodeCard.classList.add('show');
+  }, 2800);
+
+  // Reveal dashboard
+  setTimeout(() => {
+    if (bootSkipped) return;
+    episodeCard.classList.remove('show');
+    app.classList.add('show');
+  }, 4200);
+}
+
+function skipBoot() {
+  bootSkipped = true;
+  bootScreen.classList.add('hidden');
+  episodeCard.classList.remove('show');
+  app.classList.add('show');
+}
+
+runBoot();
+
+// ===== TAB SWITCHING =====
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  el.classList.add('active');
+}
+
+// ===== CLOCK =====
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', { hour12: false });
+
+  // Convention countdown (Mar 23, 2025)
+  const conv = new Date('2025-03-23T00:00:00');
+  const days = Math.max(0, Math.ceil((conv - now) / 86400000));
+  document.getElementById('countdown').textContent = '📅 CONVENTION: ' + days + ' DAYS';
+  document.getElementById('conv-days').textContent = days;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ===== ROTATING SUBTITLE =====
+const subtitles = [
+  '"The Gang Runs an AI Company"',
+  '"Dennis Gets Maximum Efficiency"',
+  '"The Gang Goes to Convention"',
+  '"Dennis Reviews the Agents\' Work"',
+  '"Charlie Does Training Content"'
+];
+let subIdx = 0;
+setInterval(() => {
+  subIdx = (subIdx + 1) % subtitles.length;
+  document.getElementById('subtitle').textContent = subtitles[subIdx];
+}, 30000);
+
+// ===== FOOTER QUOTES =====
+const quotes = [
+  '"I am a Golden God!"',
+  '"I haven\'t even begun to peak"',
+  '"The system is flawless"',
+  '"Because of the implication"',
+  '"I\'m a five-star man"',
+  '"These agents are my tools"'
+];
+let qIdx = 0;
+setInterval(() => {
+  qIdx = (qIdx + 1) % quotes.length;
+  document.getElementById('footer-quote').textContent = quotes[qIdx];
+}, 8000);
+
+// ===== EPISODE CARD TRIGGER =====
+function triggerEpisodeCard() {
+  episodeCard.classList.add('show');
+  setTimeout(() => episodeCard.classList.remove('show'), 1800);
+}
+
+// ===== BRAIN DUMP =====
+function openBrainDump() {
+  document.getElementById('brain-dump-modal').classList.add('show');
+  const saved = localStorage.getItem('brainDump');
+  if (saved) document.getElementById('brain-dump-text').value = saved;
+}
+function closeBrainDump() {
+  document.getElementById('brain-dump-modal').classList.remove('show');
+}
+function saveBrainDump() {
+  localStorage.setItem('brainDump', document.getElementById('brain-dump-text').value);
+  closeBrainDump();
+}
+
+// ===== MEMORY SEARCH =====
+function filterMemory() {
+  const q = document.getElementById('memory-search').value.toLowerCase();
+  document.querySelectorAll('.memory-item').forEach(item => {
+    const name = item.getAttribute('data-name').toLowerCase();
+    item.style.display = name.includes(q) ? '' : 'none';
+  });
+}
+
+// ===== KONAMI CODE =====
+const konami = [38,38,40,40,37,39,37,39,66,65];
+let konamiIdx = 0;
+document.addEventListener('keydown', e => {
+  if (e.keyCode === konami[konamiIdx]) {
+    konamiIdx++;
+    if (konamiIdx === konami.length) {
+      konamiIdx = 0;
+      const wc = document.getElementById('wildcard');
+      wc.classList.add('show');
+      setTimeout(() => wc.classList.remove('show'), 1500);
+    }
+  } else {
+    konamiIdx = 0;
+  }
+});
+</script>
+</body>
+</html>
