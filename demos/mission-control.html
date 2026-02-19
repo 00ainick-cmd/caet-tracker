@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission Control — The Firm</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--bg:#0a0a1a;--panel:#111827;--card:#1e293b;--card-hover:#253349;
+--cyan:#06b6d4;--emerald:#10b981;--amber:#f59e0b;--rose:#f43f5e;
+--violet:#8b5cf6;--blue:#3b82f6;
+--text:#e2e8f0;--text-dim:#94a3b8;--text-muted:#64748b;
+--border:#1e293b;--border-light:#334155;
+--font-sans:system-ui,-apple-system,'Segoe UI',sans-serif;
+--font-mono:'SF Mono','Cascadia Code','Fira Code',monospace;
+}
+html{font-size:14px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
+a{color:var(--cyan);text-decoration:none}
+
+/* TOP NAV */
+.topbar{background:var(--panel);border-bottom:1px solid var(--border-light);position:sticky;top:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:3.5rem;gap:1rem}
+.topbar-brand{font-weight:700;font-size:1.1rem;letter-spacing:.05em;white-space:nowrap;color:var(--cyan)}
+.topbar-brand span{color:var(--text-dim);font-weight:400;font-size:.85rem;margin-left:.5rem}
+.tab-nav{display:flex;gap:0;margin-left:1rem;overflow-x:auto;flex:1}
+.tab-btn{background:none;border:none;color:var(--text-dim);padding:.75rem 1rem;font-size:.8rem;font-family:var(--font-sans);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all .2s}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+.topbar-clock{margin-left:auto;font-family:var(--font-mono);font-size:.8rem;color:var(--text-dim);white-space:nowrap}
+.hamburger{display:none;background:none;border:none;color:var(--text);font-size:1.4rem;cursor:pointer}
+
+/* MAIN */
+main{flex:1;padding:1.5rem;max-width:1400px;margin:0 auto;width:100%}
+.tab-content{display:none;animation:fadeIn .3s ease}
+.tab-content.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.card{background:var(--card);border-radius:.75rem;padding:1.25rem;border:1px solid var(--border-light);transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.card-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:.5rem}
+.card-value{font-size:2.5rem;font-weight:700;line-height:1}
+.card-sub{font-size:.8rem;color:var(--text-dim);margin-top:.5rem}
+
+/* GRID */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+.grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-bottom:1.5rem}
+
+/* STATUS DOTS */
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+.dot-green{background:var(--emerald)}
+.dot-yellow{background:var(--amber)}
+.dot-red{background:var(--rose)}
+.dot-green.pulse{animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* SECTION HEADERS */
+.section-title{font-size:1rem;font-weight:600;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.section-title::before{content:'';width:3px;height:1em;background:var(--cyan);border-radius:2px}
+
+/* PRIORITY STACK */
+.priority-item{display:flex;align-items:flex-start;gap:.75rem;padding:.75rem;border-radius:.5rem;margin-bottom:.5rem;background:rgba(255,255,255,.02)}
+.priority-num{font-size:.75rem;font-weight:700;color:var(--cyan);background:rgba(6,182,212,.1);width:1.5rem;height:1.5rem;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.1rem}
+.priority-text{font-size:.85rem}
+.priority-text small{display:block;color:var(--text-dim);font-size:.75rem}
+
+/* ACTIVITY FEED */
+.feed-item{padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.8rem;display:flex;justify-content:space-between;gap:1rem}
+.feed-item:last-child{border:none}
+.feed-time{color:var(--text-muted);white-space:nowrap;font-family:var(--font-mono);font-size:.7rem}
+.feed-active{color:var(--emerald)}
+
+/* BUTTONS */
+.btn-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.cmd-btn{background:var(--card);border:1px solid var(--border-light);color:var(--text);padding:.6rem 1.25rem;border-radius:.5rem;cursor:pointer;font-size:.8rem;font-family:var(--font-sans);transition:all .2s}
+.cmd-btn:hover{border-color:var(--cyan);color:var(--cyan);transform:translateY(-1px)}
+
+/* BRAIN DUMP MODAL */
+.brain-dump-area{display:none;margin-bottom:1.5rem}
+.brain-dump-area.open{display:block}
+.brain-dump-area textarea{width:100%;height:150px;background:var(--card);border:1px solid var(--border-light);border-radius:.5rem;padding:1rem;color:var(--text);font-family:var(--font-sans);font-size:.85rem;resize:vertical}
+.brain-dump-area textarea:focus{outline:none;border-color:var(--cyan)}
+.brain-dump-actions{display:flex;gap:.5rem;margin-top:.5rem;justify-content:flex-end}
+.brain-dump-actions button{background:var(--cyan);color:#000;border:none;padding:.4rem 1rem;border-radius:.375rem;cursor:pointer;font-size:.8rem;font-weight:600}
+.brain-dump-actions .btn-clear{background:transparent;color:var(--text-dim);border:1px solid var(--border-light)}
+
+/* KANBAN */
+.kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;align-items:start}
+.kanban-col{background:var(--panel);border-radius:.75rem;padding:1rem;min-height:200px}
+.kanban-col-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between}
+.kanban-col-title .count{background:rgba(255,255,255,.08);padding:.1rem .5rem;border-radius:1rem;font-size:.65rem}
+.kanban-card{background:var(--card);border-radius:.5rem;padding:.75rem;margin-bottom:.75rem;border-left:3px solid var(--text-muted);transition:transform .2s,box-shadow .2s}
+.kanban-card:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.kanban-card h4{font-size:.8rem;font-weight:600;margin-bottom:.25rem}
+.kanban-card p{font-size:.7rem;color:var(--text-dim);line-height:1.4}
+.kanban-card .owner{font-size:.65rem;color:var(--text-muted);margin-top:.4rem}
+.kanban-card .due{font-size:.65rem;color:var(--amber);margin-top:.25rem}
+.kanban-card.done{opacity:.7}
+.kanban-card.done h4{text-decoration:line-through}
+.border-cyan{border-left-color:var(--cyan)}
+.border-emerald{border-left-color:var(--emerald)}
+.border-violet{border-left-color:var(--violet)}
+.border-amber{border-left-color:var(--amber)}
+.border-rose{border-left-color:var(--rose)}
+.border-blue{border-left-color:var(--blue)}
+
+/* CRON TABLE */
+.cron-table{width:100%;border-collapse:collapse;margin-bottom:2rem}
+.cron-table th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);padding:.75rem;border-bottom:1px solid var(--border-light)}
+.cron-table td{padding:.75rem;font-size:.8rem;border-bottom:1px solid rgba(255,255,255,.03)}
+.cron-table tr:hover td{background:rgba(255,255,255,.02)}
+
+/* TIMELINE */
+.timeline-bar{position:relative;background:var(--card);border-radius:1rem;height:4rem;margin:2rem 0;overflow:visible;border:1px solid var(--border-light)}
+.timeline-fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--cyan),transparent);border-radius:1rem 0 0 1rem;opacity:.15}
+.timeline-event{position:absolute;top:50%;transform:translateY(-50%)}
+.timeline-dot{width:10px;height:10px;border-radius:50%;background:var(--cyan);border:2px solid var(--bg)}
+.timeline-dot.star{background:var(--amber);width:14px;height:14px}
+.timeline-label{position:absolute;top:-2rem;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:.6rem;color:var(--text-dim)}
+.timeline-zone{position:absolute;top:0;bottom:0;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:.5rem}
+.timeline-zone-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:.65rem;font-weight:600;color:var(--amber);white-space:nowrap}
+
+/* EVENT LIST */
+.event-list{list-style:none}
+.event-list li{padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:.8rem;display:flex;gap:1rem;align-items:flex-start}
+.event-list li:last-child{border:none}
+.event-date{font-family:var(--font-mono);font-size:.7rem;color:var(--cyan);min-width:7rem;flex-shrink:0}
+.event-star{color:var(--amber)}
+
+/* MEMORY */
+.search-box{position:relative;margin-bottom:1.5rem}
+.search-box input{width:100%;padding:.85rem 1rem .85rem 2.75rem;background:var(--card);border:1px solid var(--border-light);border-radius:.75rem;color:var(--text);font-size:.9rem;font-family:var(--font-sans)}
+.search-box input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(6,182,212,.15)}
+.search-box::before{content:'🔍';position:absolute;left:1rem;top:50%;transform:translateY(-50%);font-size:.9rem}
+.memory-section{margin-bottom:1rem}
+.memory-header{display:flex;align-items:center;gap:.5rem;padding:.75rem 1rem;background:var(--card);border-radius:.5rem;cursor:pointer;font-size:.85rem;font-weight:600;border:1px solid var(--border-light);transition:background .2s}
+.memory-header:hover{background:var(--card-hover)}
+.memory-header .chevron{margin-left:auto;transition:transform .3s;color:var(--text-muted)}
+.memory-header.expanded .chevron{transform:rotate(90deg)}
+.memory-body{display:none;padding:.5rem 0}
+.memory-body.open{display:block}
+.memory-file{display:flex;align-items:center;gap:.75rem;padding:.5rem 1rem;font-size:.8rem;border-radius:.375rem;transition:background .2s}
+.memory-file:hover{background:rgba(255,255,255,.03)}
+.memory-file code{font-family:var(--font-mono);color:var(--cyan);font-size:.75rem;min-width:10rem}
+.memory-file span{color:var(--text-dim);font-size:.75rem}
+.memory-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.5rem}
+
+/* TEAM */
+.team-featured{background:linear-gradient(135deg,var(--card),rgba(6,182,212,.08));border:1px solid rgba(6,182,212,.2);border-radius:.75rem;padding:1.5rem;margin-bottom:1.5rem}
+.team-featured h3{font-size:1.1rem;margin-bottom:.25rem}
+.team-featured .role{color:var(--cyan);font-size:.8rem;font-weight:600;margin-bottom:.75rem}
+.team-featured .quote{font-style:italic;color:var(--text-dim);font-size:.8rem;margin-top:.75rem;border-left:2px solid var(--cyan);padding-left:.75rem}
+.team-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-bottom:1.5rem}
+.team-card{background:var(--card);border-radius:.75rem;padding:1.25rem;border:1px solid var(--border-light);transition:transform .2s}
+.team-card:hover{transform:translateY(-2px)}
+.team-card h4{font-size:.9rem;margin-bottom:.15rem}
+.team-card .role{color:var(--text-muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em}
+.team-card .detail{font-size:.8rem;color:var(--text-dim);margin-top:.5rem}
+.team-card .detail strong{color:var(--text)}
+.team-card .specialties{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.5rem}
+.team-card .specialties span{background:rgba(255,255,255,.05);padding:.15rem .5rem;border-radius:1rem;font-size:.65rem;color:var(--text-dim)}
+.dev-bullpen{background:var(--card);border-radius:.75rem;padding:1.25rem;border:1px solid var(--border-light);margin-bottom:1rem}
+.dev-station{display:flex;align-items:center;gap:.75rem;padding:.4rem 0;font-size:.8rem}
+.advisory{margin-top:1rem}
+.advisory summary{cursor:pointer;color:var(--text-dim);font-size:.85rem;padding:.75rem;background:var(--card);border-radius:.5rem;border:1px solid var(--border-light)}
+
+/* ARTIFACTS */
+.file-tree{font-family:var(--font-mono);font-size:.8rem;line-height:2}
+.file-tree .dir{color:var(--blue);font-weight:600}
+.file-tree .file{color:var(--text-dim);padding-left:1.5rem;display:flex;align-items:center;gap:.5rem}
+.file-tree .file-name{color:var(--text)}
+.file-tree .badge{font-size:.65rem;padding:.1rem .4rem;border-radius:.25rem;font-family:var(--font-sans)}
+.badge-done{background:rgba(16,185,129,.15);color:var(--emerald)}
+.badge-building{background:rgba(245,158,11,.15);color:var(--amber)}
+.badge-key{background:rgba(6,182,212,.15);color:var(--cyan)}
+.indent-1{padding-left:1.5rem}
+.indent-2{padding-left:3rem}
+
+/* BOTTOM BAR */
+.bottombar{background:var(--panel);border-top:1px solid var(--border-light);padding:.5rem 1.5rem;font-size:.7rem;color:var(--text-muted);display:flex;align-items:center;justify-content:center;gap:1.5rem;flex-wrap:wrap}
+.bottombar span{white-space:nowrap}
+
+/* GLOW */
+.glow{animation:glow 2s ease-in-out infinite alternate}
+@keyframes glow{from{text-shadow:0 0 4px var(--amber)}to{text-shadow:0 0 16px var(--amber),0 0 30px rgba(245,158,11,.3)}}
+
+/* RESPONSIVE */
+@media(max-width:1024px){
+.kanban{grid-template-columns:repeat(3,1fr)}
+.grid-4{grid-template-columns:repeat(2,1fr)}
+.team-grid{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+.hamburger{display:block}
+.tab-nav{display:none;position:absolute;top:3.5rem;left:0;right:0;background:var(--panel);flex-direction:column;border-bottom:1px solid var(--border-light);padding:.5rem 0}
+.tab-nav.open{display:flex}
+.tab-btn{text-align:left;padding:.75rem 1.5rem}
+.kanban{grid-template-columns:1fr}
+.grid-4,.grid-2,.grid-5{grid-template-columns:1fr}
+.memory-stats{grid-template-columns:1fr}
+.topbar-brand span{display:none}
+.timeline-bar{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<nav class="topbar">
+<button class="hamburger" onclick="document.querySelector('.tab-nav').classList.toggle('open')" aria-label="Menu">☰</button>
+<div class="topbar-brand">MISSION CONTROL <span>— The Firm</span></div>
+<div class="tab-nav">
+<button class="tab-btn active" onclick="switchTab('command')">Command Center</button>
+<button class="tab-btn" onclick="switchTab('projects')">Projects</button>
+<button class="tab-btn" onclick="switchTab('calendar')">Calendar</button>
+<button class="tab-btn" onclick="switchTab('memory')">Memory</button>
+<button class="tab-btn" onclick="switchTab('team')">Team</button>
+<button class="tab-btn" onclick="switchTab('artifacts')">Artifacts</button>
+</div>
+<div class="topbar-clock" id="clock">--:-- CT</div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main>
+
+<!-- TAB 1: COMMAND CENTER -->
+<section class="tab-content active" id="tab-command">
+
+<div class="grid-4">
+<div class="card">
+<div class="card-label">Convention Countdown</div>
+<div class="card-value" id="countdown-num" style="color:var(--cyan)">--</div>
+<div class="card-sub">AEA Convention · Mar 23-26 · Dallas</div>
+</div>
+<div class="card">
+<div class="card-label">Active Agents</div>
+<div class="card-value">5<span style="font-size:1.2rem;color:var(--text-dim)">/8</span></div>
+<div class="card-sub" style="display:flex;gap:6px;align-items:center;margin-top:.75rem">
+<span class="dot dot-green pulse" title="Dennis"></span>
+<span class="dot dot-green pulse" title="Dev-1"></span>
+<span class="dot dot-green pulse" title="Dev-2"></span>
+<span class="dot dot-green pulse" title="Dev-3"></span>
+<span class="dot dot-green pulse" title="Dev-4"></span>
+<span class="dot dot-yellow" title="Charlie"></span>
+<span class="dot dot-yellow" title="Dee"></span>
+<span class="dot dot-yellow" title="Mac"></span>
+</div>
+</div>
+<div class="card">
+<div class="card-label">Open Projects</div>
+<div class="card-value" style="color:var(--violet)">7</div>
+<div class="card-sub">CAET Tracker · Booth Kiosk · Oral Board</div>
+</div>
+<div class="card">
+<div class="card-label">Cron Health</div>
+<div class="card-value" style="color:var(--emerald)">5/5</div>
+<div class="card-sub">All jobs running · Last: 8:00 PM</div>
+</div>
+</div>
+
+<div class="grid-2">
+<div class="card">
+<div class="section-title">Priority Stack</div>
+<div class="priority-item"><span class="priority-num">1</span><div class="priority-text">CAET Advanced Tracker<small>Building in Cursor (Claude Code)</small></div></div>
+<div class="priority-item"><span class="priority-num">2</span><div class="priority-text">Oral board question bank<small>Danny contributing</small></div></div>
+<div class="priority-item"><span class="priority-num">3</span><div class="priority-text">Convention workforce committee agenda<small>Needs formal doc</small></div></div>
+<div class="priority-item"><span class="priority-num">4</span><div class="priority-text">PIA meeting Thursday<small>Instructor feedback positive</small></div></div>
+<div class="priority-item"><span class="priority-num">5</span><div class="priority-text">Kevan Gannon<small>Register in Supabase</small></div></div>
+</div>
+<div class="card">
+<div class="section-title">Recent Activity</div>
+<div class="feed-item"><span>Dennis: Built SteinAir video training module (145KB)</span><span class="feed-time">2h ago</span></div>
+<div class="feed-item"><span>Dennis: Updated CAET Advanced spec with bundled product concept</span><span class="feed-time">1h ago</span></div>
+<div class="feed-item"><span class="feed-active">Dev-1: Building Convention Booth Kiosk...</span><span class="feed-time feed-active">active</span></div>
+<div class="feed-item"><span class="feed-active">Dev-2: Building Oral Board Simulator...</span><span class="feed-time feed-active">active</span></div>
+<div class="feed-item"><span class="feed-active">Dev-3: Building Workforce ROI Calculator...</span><span class="feed-time feed-active">active</span></div>
+<div class="feed-item"><span class="feed-active">Dev-4: Building Agent Office...</span><span class="feed-time feed-active">active</span></div>
+<div class="feed-item"><span>Dennis: Spawned 4 overnight builds</span><span class="feed-time">30m ago</span></div>
+</div>
+</div>
+
+<div class="btn-row">
+<button class="cmd-btn" onclick="toggleBrainDump()">📋 Brain Dump</button>
+<button class="cmd-btn" onclick="switchTab('projects')">📊 Status Report</button>
+<button class="cmd-btn" onclick="switchTab('memory')">🔍 Search Memory</button>
+<button class="cmd-btn" onclick="switchTab('team')">👥 Team View</button>
+<button class="cmd-btn" onclick="switchTab('calendar')">📅 Calendar</button>
+</div>
+
+<div class="brain-dump-area" id="brainDump">
+<div class="card">
+<div class="section-title">Brain Dump — Quick Capture</div>
+<textarea id="brainDumpText" placeholder="Drop your thoughts here... (auto-saves to localStorage)"></textarea>
+<div class="brain-dump-actions">
+<button class="btn-clear" onclick="clearBrainDump()">Clear</button>
+<button onclick="saveBrainDump()">Save ✓</button>
+</div>
+</div>
+</div>
+
+</section>
+
+<!-- TAB 2: PROJECTS -->
+<section class="tab-content" id="tab-projects">
+<div class="kanban">
+
+<div class="kanban-col">
+<div class="kanban-col-title">Backlog <span class="count">5</span></div>
+<div class="kanban-card"><h4>Video Pipeline Refinement</h4><p>POC done. Source-only guardrails defined. Post-convention.</p></div>
+<div class="kanban-card"><h4>ACE Sales Funnel</h4><p>Designed but needs MailerLite API key.</p></div>
+<div class="kanban-card"><h4>Genealogy/Lineage Hub</h4><p>Phase 2 complete. DNA analysis paused.</p></div>
+<div class="kanban-card"><h4>Marketing Automation</h4><p>Reddit strategy designed. Needs execution.</p></div>
+<div class="kanban-card"><h4>147 School Outreach</h4><p>PIA Thursday. Pattern: pre-AMP or post-AMP.</p></div>
+</div>
+
+<div class="kanban-col">
+<div class="kanban-col-title">In Progress <span class="count">4</span></div>
+<div class="kanban-card border-cyan"><h4>CAET Advanced Tracking Tool</h4><p>Nick building in Cursor. RTI/OJT schema written. Push to GitHub pending.</p><div class="owner">Owner: Nick + Dennis</div></div>
+<div class="kanban-card border-emerald"><h4>Train-the-Trainer Content</h4><p>Nick building with Claude Code.</p><div class="owner">Owner: Nick</div></div>
+<div class="kanban-card border-violet"><h4>Convention Booth Materials</h4><p>Kiosk app building overnight. ROI calculator in progress.</p><div class="owner">Owner: Dev team</div></div>
+<div class="kanban-card border-amber"><h4>Oral Board Framework</h4><p>Simulator building. Question bank needs Danny's input.</p><div class="owner">Owner: Dennis + Danny</div></div>
+</div>
+
+<div class="kanban-col">
+<div class="kanban-col-title">Convention Prep <span class="count">4</span></div>
+<div class="kanban-card border-amber"><h4>Workforce Committee Agenda</h4><p>2 hours slotted. 7 items. Draft needed.</p><div class="due">Due: March 23</div></div>
+<div class="kanban-card border-cyan"><h4>Convention Pathway Announcement</h4><p>3-phase process reveal. Demo tracker.</p><div class="due">Due: March 23</div></div>
+<div class="kanban-card border-emerald"><h4>Fastport Signing Ceremony</h4><p>Awaiting DOL approval ~March 20.</p><div class="due">Due: March 23</div></div>
+<div class="kanban-card border-violet"><h4>Bridge/Gap Test Launch</h4><p>Josh/USI email sent. $69-79 pricing.</p><div class="due">Due: March 23</div></div>
+</div>
+
+<div class="kanban-col">
+<div class="kanban-col-title">Blocked <span class="count">2</span></div>
+<div class="kanban-card border-rose"><h4>MailerLite Integration</h4><p>Need API key from mailerlite.com</p></div>
+<div class="kanban-card border-rose"><h4>CAET LMS Auth</h4><p>Supabase project paused since Feb 11. Needs restore from desktop.</p></div>
+</div>
+
+<div class="kanban-col">
+<div class="kanban-col-title">Done <span class="count">5</span></div>
+<div class="kanban-card done"><h4>Funding Finder ✓</h4><p>Live on GitHub Pages. 50 states.</p></div>
+<div class="kanban-card done"><h4>DOL Apprenticeship Submission ✓</h4><p>All docs finalized and submitted.</p></div>
+<div class="kanban-card done"><h4>FAA Repairman Letter ✓</h4><p>Rick sending to FAA. They were 'thrilled.'</p></div>
+<div class="kanban-card done"><h4>Evening Episode Pipeline ✓</h4><p>OpenAI TTS-HD working. ~$0.10/episode.</p></div>
+<div class="kanban-card done"><h4>Video-to-Training POC ✓</h4><p>SteinAir D-Sub module. Quality issues noted.</p></div>
+</div>
+
+</div>
+</section>
+
+<!-- TAB 3: CALENDAR -->
+<section class="tab-content" id="tab-calendar">
+
+<div class="card" style="margin-bottom:1.5rem">
+<div class="section-title">Active Cron Jobs</div>
+<table class="cron-table">
+<thead><tr><th>Job</th><th>Schedule</th><th>Last Run</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>Morning Briefing</td><td>7AM CT daily</td><td>Today 7:00</td><td>✅</td></tr>
+<tr><td>Afternoon Watchlist</td><td>2PM CT daily</td><td>Today 14:00</td><td>✅</td></tr>
+<tr><td>Evening Episode</td><td>8PM CT daily</td><td>Today 20:00</td><td>✅</td></tr>
+<tr><td>Convention Countdown</td><td>8AM CT daily</td><td>Today 8:00</td><td>✅</td></tr>
+<tr><td>Frank Weekly Research</td><td>6AM Monday</td><td>Mon 6:00</td><td>✅</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card" style="margin-bottom:1.5rem">
+<div class="section-title">Upcoming Events</div>
+<ul class="event-list">
+<li><span class="event-date">Feb 20 (Thu)</span><span>PIA Meeting — instructor feedback</span></li>
+<li><span class="event-date">Mar 2-6</span><span>Graham Cochrane Challenge (10AM-12PM CT daily)</span></li>
+<li><span class="event-date">Mar 20</span><span>DOL Approval Expected (Fastport)</span></li>
+<li><span class="event-date event-star">Mar 23-26 ⭐</span><span><strong>AEA Convention — Dallas</strong></span></li>
+<li><span class="event-date">Mar 23</span><span>Fastport Signing Ceremony</span></li>
+<li><span class="event-date">Mar 23</span><span>Workforce Committee Meeting (2 hrs)</span></li>
+<li><span class="event-date">Mar 29 – Apr 1</span><span>ATEC Conference (Portland, OR) — Nick speaking on ACS panel</span></li>
+</ul>
+</div>
+
+<div class="card">
+<div class="section-title">Timeline — Today → April 1</div>
+<div class="timeline-bar" id="timelineBar">
+<div class="timeline-fill" style="width:5%"></div>
+<!-- Events positioned by JS -->
+</div>
+<div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--text-muted);margin-top:.25rem;padding:0 .25rem">
+<span>Today (Feb 18)</span><span>March</span><span>April 1</span>
+</div>
+</div>
+
+</section>
+
+<!-- TAB 4: MEMORY -->
+<section class="tab-content" id="tab-memory">
+
+<div class="search-box">
+<input type="text" id="memorySearch" placeholder="Search memory files..." oninput="filterMemory(this.value)">
+</div>
+
+<div id="memoryList">
+<div class="memory-section" data-search="memory.md identity.md soul.md user.md agents.md tools.md critical always loaded">
+<div class="memory-header" onclick="toggleMemory(this)">
+🔴 Critical (Always Loaded) <span class="chevron">▸</span>
+</div>
+<div class="memory-body open">
+<div class="memory-file"><code>MEMORY.md</code><span>Master memory file. Active projects, contacts, decisions.</span></div>
+<div class="memory-file"><code>IDENTITY.md</code><span>Dennis Reynolds identity and operational stance.</span></div>
+<div class="memory-file"><code>SOUL.md</code><span>Core values, quality standards, cardinal sins.</span></div>
+<div class="memory-file"><code>USER.md</code><span>Nick Brown context, preferences, communication style.</span></div>
+<div class="memory-file"><code>AGENTS.md</code><span>Gang structure, delegation protocol, QC process.</span></div>
+<div class="memory-file"><code>TOOLS.md</code><span>What works, what doesn't, gotchas.</span></div>
+</div>
+</div>
+
+<div class="memory-section" data-search="index.md crm contacts orgs family genealogy system preferences infrastructure important load on demand">
+<div class="memory-header" onclick="toggleMemory(this)">
+🟡 Important (Load on Demand) <span class="chevron">▸</span>
+</div>
+<div class="memory-body">
+<div class="memory-file"><code>memory/INDEX.md</code><span>Wiki link index</span></div>
+<div class="memory-file"><code>memory/crm/</code><span>Business contacts, orgs, projects</span></div>
+<div class="memory-file"><code>memory/family/</code><span>Genealogy people, places, sources</span></div>
+<div class="memory-file"><code>memory/system/</code><span>Preferences, infrastructure config</span></div>
+</div>
+</div>
+
+<div class="memory-section" data-search="daily session logs artifacts reference on demand">
+<div class="memory-header" onclick="toggleMemory(this)">
+🟢 Reference (On Demand) <span class="chevron">▸</span>
+</div>
+<div class="memory-body">
+<div class="memory-file"><code>memory/daily/</code><span>Date-stamped session logs</span></div>
+<div class="memory-file"><code>artifacts/</code><span>Artifacts directory index</span></div>
+</div>
+</div>
+</div>
+
+<div class="memory-stats">
+<div class="card"><div class="card-label">Total Memory Files</div><div class="card-value" style="font-size:1.5rem">50+</div></div>
+<div class="card"><div class="card-label">Wiki Links</div><div class="card-value" style="font-size:1.5rem">CRM + Family</div></div>
+<div class="card"><div class="card-label">Last Update</div><div class="card-value" style="font-size:1.5rem" id="memoryDate">Feb 18</div></div>
+</div>
+
+</section>
+
+<!-- TAB 5: TEAM -->
+<section class="tab-content" id="tab-team">
+
+<div class="team-featured">
+<h3><span class="dot dot-green pulse"></span> Dennis Reynolds</h3>
+<div class="role">COO · Opus 4.6</div>
+<div class="detail"><strong>Current:</strong> Managing 4 overnight builds, updating specs, backing up to Notion</div>
+<div class="detail"><strong>Specialties:</strong> Strategy, Triage, QC, GTD, Delegation</div>
+<div class="detail"><strong>Skills:</strong> 47 loaded</div>
+<div class="quote">"I know the status of everything."</div>
+</div>
+
+<div class="team-grid">
+<div class="team-card">
+<h4><span class="dot dot-yellow"></span> Charlie</h4>
+<div class="role">Training Director · Sonnet 4.5</div>
+<div class="detail"><strong>Last:</strong> Wire Termination Module (112KB HTML)</div>
+<div class="specialties"><span>CAET modules</span><span>question banks</span><span>curriculum</span><span>study guides</span><span>lesson plans</span></div>
+</div>
+<div class="team-card">
+<h4><span class="dot dot-yellow"></span> Dee</h4>
+<div class="role">Marketing Lead · Sonnet 4.5</div>
+<div class="detail"><strong>Last:</strong> Apprenticeship marketing campaign</div>
+<div class="specialties"><span>LinkedIn</span><span>campaigns</span><span>StoryBrand</span><span>brand voice</span><span>convention materials</span></div>
+</div>
+<div class="team-card">
+<h4><span class="dot dot-yellow"></span> Mac</h4>
+<div class="role">Communications Manager · Sonnet 4.5</div>
+<div class="detail"><strong>Last:</strong> Partnership correspondence</div>
+<div class="specialties"><span>emails</span><span>correspondence</span><span>relationship mgmt</span><span>meeting follow-ups</span></div>
+</div>
+<div class="team-card">
+<h4><span class="dot dot-yellow"></span> Frank</h4>
+<div class="role">Research Analyst · Sonnet 4.5</div>
+<div class="detail"><strong>Last:</strong> Genealogy pain points research</div>
+<div class="specialties"><span>FAA intel</span><span>competitors</span><span>funding</span><span>market trends</span><span>regulatory</span></div>
+</div>
+</div>
+
+<div class="dev-bullpen">
+<div class="section-title">Dev Bullpen</div>
+<div class="dev-station"><span class="dot dot-green pulse"></span> <strong>Dev-1:</strong>&nbsp; Building "Convention Booth Kiosk"</div>
+<div class="dev-station"><span class="dot dot-green pulse"></span> <strong>Dev-2:</strong>&nbsp; Building "Oral Board Simulator"</div>
+<div class="dev-station"><span class="dot dot-green pulse"></span> <strong>Dev-3:</strong>&nbsp; Building "Workforce ROI Calculator"</div>
+</div>
+
+<details class="advisory">
+<summary>Advisory Council — 5 Parallel Advisors</summary>
+<div style="padding:1rem;font-size:.8rem;color:var(--text-dim)">
+<p><strong>Advisors:</strong> Carnegie · Voss · Strategic · StoryBrand · Nick's Voice</p>
+<p><strong>Model:</strong> Haiku · <strong>Trigger:</strong> "council" · <strong>Cost:</strong> ~$0.02/session</p>
+<p><strong>Last session:</strong> AEA job board analysis (Feb 17)</p>
+</div>
+</details>
+
+</section>
+
+<!-- TAB 6: ARTIFACTS -->
+<section class="tab-content" id="tab-artifacts">
+<div class="card">
+<div class="section-title">Built Deliverables</div>
+<div class="file-tree">
+<div class="dir">artifacts/</div>
+<div class="dir indent-1">dennis/</div>
+<div class="file indent-2"><span class="file-name">caet-advanced-tracker-spec.md</span><span class="badge badge-key">⭐ key</span></div>
+<div class="file indent-2"><span class="file-name">caet-advanced-tracker-demo.html</span><span class="badge badge-done">✅ done</span></div>
+<div class="file indent-2"><span class="file-name">convention-booth-kiosk.html</span><span class="badge badge-building">🔨 building</span></div>
+<div class="file indent-2"><span class="file-name">oral-board-simulator.html</span><span class="badge badge-building">🔨 building</span></div>
+<div class="file indent-2"><span class="file-name">workforce-roi-calculator.html</span><span class="badge badge-building">🔨 building</span></div>
+<div class="file indent-2"><span class="file-name">agent-office.html</span><span class="badge badge-building">🔨 building</span></div>
+<div class="file indent-2"><span class="file-name">steinair-crimping-dsub-training.html</span><span class="badge badge-done">✅ done</span></div>
+<div class="file indent-2"><span class="file-name">002_rti_ojt_schema.sql</span><span class="badge badge-done">✅ done</span></div>
+<div class="file indent-2"><span class="file-name">CAET-TMS-Schema-v3.json</span><span class="badge badge-done">✅ done</span></div>
+<div class="file indent-2"><span class="file-name">claude-code-prompt-rti-ojt.md</span><span class="badge badge-done">✅ done</span></div>
+<div class="file indent-2"><span class="file-name">workforce-committee-meeting-2026-02-18.md</span><span class="badge badge-done">✅ done</span></div>
+<div class="file indent-2"><span class="file-name">pqs-apprenticeship-gap-analysis.md</span><span class="badge badge-done">✅ done</span></div>
+<div class="file indent-2"><span class="file-name">marketing-automation-scheme.md</span><span class="badge badge-done">✅ done</span></div>
+<div class="file indent-2"><span class="file-name">mission-control.html</span><span class="badge badge-key">⭐ this file</span></div>
+
+<div class="dir indent-1" style="margin-top:.5rem">charlie/</div>
+<div class="file indent-2"><span class="file-name">study-guide-pitot-static.html</span><span class="badge badge-done">✅ done</span></div>
+
+<div class="dir indent-1" style="margin-top:.5rem">dee/</div>
+<div class="file indent-2"><span class="file-name">apprenticeship-marketing-campaign.md</span><span class="badge badge-done">✅ done</span></div>
+
+<div class="dir indent-1" style="margin-top:.5rem">frank/</div>
+<div class="file indent-2"><span class="file-name">genealogy-pain-points-research-2026-02-15.md</span><span class="badge badge-done">✅ done</span></div>
+<div class="file indent-2"><span class="file-name">rti-reference-docs/</span><span style="font-size:.7rem;color:var(--text-muted)">5 files, ~150K+ words</span></div>
+
+<div class="dir indent-1" style="margin-top:.5rem">reference/</div>
+<div class="file indent-2"><span class="file-name">simulation-quality-standard.md</span><span class="badge badge-done">✅ done</span></div>
+</div>
+</div>
+</section>
+
+</main>
+
+<!-- BOTTOM BAR -->
+<footer class="bottombar">
+<span>OpenClaw v1.x</span>
+<span>·</span>
+<span>Opus 4.6</span>
+<span>·</span>
+<span>brownthunder (Pi 5)</span>
+<span>·</span>
+<span id="bottomAgents">5 agents active</span>
+<span>·</span>
+<span id="bottomCountdown">Convention: -- days</span>
+<span>·</span>
+<span>Last heartbeat: 2m ago</span>
+</footer>
+
+<script>
+// Tab switching
+function switchTab(name){
+document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+document.getElementById('tab-'+name).classList.add('active');
+const btns=document.querySelectorAll('.tab-btn');
+const names=['command','projects','calendar','memory','team','artifacts'];
+const idx=names.indexOf(name);
+if(idx>=0&&btns[idx])btns[idx].classList.add('active');
+document.querySelector('.tab-nav').classList.remove('open');
+}
+
+// Clock
+function updateClock(){
+const now=new Date();
+const ct=now.toLocaleString('en-US',{timeZone:'America/Chicago',hour:'numeric',minute:'2-digit',hour12:true});
+document.getElementById('clock').textContent=ct+' CT';
+}
+setInterval(updateClock,1000);updateClock();
+
+// Countdown
+function updateCountdown(){
+const conv=new Date('2026-03-23T00:00:00-05:00');
+const now=new Date();
+const days=Math.ceil((conv-now)/(1000*60*60*24));
+const el=document.getElementById('countdown-num');
+el.textContent=days;
+document.getElementById('bottomCountdown').textContent='Convention: '+days+' days';
+if(days<7){el.style.color='var(--rose)';el.classList.add('glow')}
+else if(days<14){el.style.color='var(--amber)';el.classList.add('glow')}
+else{el.style.color='var(--cyan)'}
+}
+updateCountdown();
+
+// Brain dump
+function toggleBrainDump(){
+document.getElementById('brainDump').classList.toggle('open');
+const ta=document.getElementById('brainDumpText');
+ta.value=localStorage.getItem('mc-braindump')||'';
+if(document.getElementById('brainDump').classList.contains('open'))ta.focus();
+}
+function saveBrainDump(){
+localStorage.setItem('mc-braindump',document.getElementById('brainDumpText').value);
+}
+function clearBrainDump(){
+document.getElementById('brainDumpText').value='';
+localStorage.removeItem('mc-braindump');
+}
+document.getElementById('brainDumpText').addEventListener('input',function(){
+localStorage.setItem('mc-braindump',this.value);
+});
+
+// Memory search
+function filterMemory(q){
+q=q.toLowerCase();
+document.querySelectorAll('.memory-section').forEach(s=>{
+const txt=(s.getAttribute('data-search')+' '+s.textContent).toLowerCase();
+s.style.display=txt.includes(q)?'':'none';
+});
+}
+
+// Memory accordion
+function toggleMemory(header){
+header.classList.toggle('expanded');
+const body=header.nextElementSibling;
+body.classList.toggle('open');
+}
+
+// Timeline
+(function(){
+const bar=document.getElementById('timelineBar');
+if(!bar)return;
+const start=new Date('2026-02-18');
+const end=new Date('2026-04-01');
+const total=end-start;
+const events=[
+{date:'2026-02-20',label:'PIA',star:false},
+{date:'2026-03-02',label:'Graham',star:false},
+{date:'2026-03-20',label:'DOL',star:false},
+{date:'2026-03-29',label:'ATEC',star:false},
+];
+events.forEach(e=>{
+const d=new Date(e.date);
+const pct=((d-start)/total)*100;
+const div=document.createElement('div');
+div.className='timeline-event';
+div.style.left=pct+'%';
+div.innerHTML='<div class="timeline-dot'+(e.star?' star':'')+'"></div><div class="timeline-label">'+e.label+'</div>';
+bar.appendChild(div);
+});
+// Convention zone
+const convStart=new Date('2026-03-23');
+const convEnd=new Date('2026-03-26');
+const zoneLeft=((convStart-start)/total)*100;
+const zoneWidth=((convEnd-convStart)/total)*100;
+const zone=document.createElement('div');
+zone.className='timeline-zone';
+zone.style.left=zoneLeft+'%';
+zone.style.width=zoneWidth+'%';
+zone.innerHTML='<div class="timeline-zone-label">AEA Convention ⭐</div>';
+bar.appendChild(zone);
+})();
+</script>
+</body>
+</html>
