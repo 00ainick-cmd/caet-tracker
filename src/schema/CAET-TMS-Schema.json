@@ -1,0 +1,892 @@
+{
+  "$schema": "CAET-TMS-Schema",
+  "schema_version": "2.0.0",
+  "last_updated": "2026-02-18",
+  "authors": ["Nick Brown / AEA", "Claude / Schema Design"],
+
+  "program": {
+    "name": "CAET Advanced Practical Qualification",
+    "authority": "Aircraft Electronics Association (AEA)",
+    "competency_standard": "Would I trust this technician to do this task unsupervised on an aircraft going back to a customer tomorrow?",
+    "competency_definition": {
+      "correctly": "Following approved procedures",
+      "independently": "Without step-by-step guidance",
+      "safely": "Without creating hazards",
+      "consistently": "Not just once by luck"
+    },
+    "certification_flow": [
+      {
+        "step": 1,
+        "gate": "practical_tasks",
+        "description": "Complete all 65 tasks signed off by authorized evaluators",
+        "prerequisite": null
+      },
+      {
+        "step": 2,
+        "gate": "written_exam",
+        "description": "Pass CAET Advanced written examination (170 questions)",
+        "prerequisite": "practical_tasks"
+      },
+      {
+        "step": 3,
+        "gate": "oral_board",
+        "description": "Pass oral board examination with AEA Workforce Committee",
+        "prerequisite": "written_exam"
+      },
+      {
+        "step": 4,
+        "gate": "certificate_issued",
+        "description": "CAET Advanced Practical Qualification certificate issued",
+        "prerequisite": "oral_board"
+      }
+    ],
+    "time_limit_months": 36,
+    "time_limit_note": "All 65 tasks must be completed within 36 months of enrollment date"
+  },
+
+  "roles": {
+    "admin": {
+      "description": "AEA program administrator",
+      "permissions": [
+        "enroll_shops",
+        "deactivate_shops",
+        "view_all_shops",
+        "view_all_students",
+        "view_all_evaluators",
+        "manage_evaluator_training",
+        "schedule_oral_boards",
+        "record_oral_board_results",
+        "record_written_exam_results",
+        "issue_certificates",
+        "reverse_signoffs",
+        "view_analytics",
+        "export_data",
+        "manage_oral_board_questions"
+      ]
+    },
+    "shop_evaluator": {
+      "description": "Authorized evaluator at enrolled repair station",
+      "permissions": [
+        "view_shop_students",
+        "sign_off_tasks",
+        "reverse_own_signoffs",
+        "add_signoff_notes",
+        "view_evaluator_guides",
+        "view_task_rubrics",
+        "request_oral_board"
+      ],
+      "requirements": {
+        "must_complete": "evaluator_training",
+        "recurrent_interval_months": 24,
+        "eligible_roles": [
+          "Repair station supervisor or inspector",
+          "A&P mechanic with relevant experience",
+          "Designated shop evaluator (registered by shop)",
+          "AEA-authorized practical examiner"
+        ]
+      }
+    },
+    "student": {
+      "description": "Candidate pursuing CAET Advanced Practical Qualification",
+      "permissions": [
+        "view_own_progress",
+        "view_prep_briefs",
+        "view_mapped_questions",
+        "request_signoff"
+      ]
+    }
+  },
+
+  "entities": {
+
+    "shop": {
+      "description": "Enrolled AEA member repair station",
+      "fields": {
+        "id": "Unique identifier",
+        "name": "Repair station name",
+        "city": "City",
+        "state": "State",
+        "certificate_number": "Part 145 certificate number",
+        "contact_name": "Primary contact person",
+        "contact_email": "Contact email",
+        "contact_phone": "Contact phone",
+        "enrollment_date": "Date enrolled in program",
+        "status": "active | inactive | suspended",
+        "status_reason": "Reason for status change if not active",
+        "aea_member_number": "AEA membership number"
+      }
+    },
+
+    "evaluator": {
+      "description": "Authorized evaluator registered at a shop",
+      "fields": {
+        "id": "Unique identifier",
+        "shop_id": "FK to shop",
+        "name": "Full name",
+        "initials": "Initials used for sign-offs",
+        "title": "Job title / position",
+        "email": "Email address",
+        "qualifications": "What qualifies them (A&P, supervisor, etc.)",
+        "training_completed_date": "Date evaluator training completed",
+        "training_due_date": "Date recurrent training due (24 months from completion)",
+        "training_status": "current | due_soon | overdue | not_started",
+        "status": "active | inactive",
+        "registered_date": "Date registered in system"
+      }
+    },
+
+    "student": {
+      "description": "Candidate pursuing qualification",
+      "fields": {
+        "id": "Unique identifier",
+        "shop_id": "FK to shop",
+        "name": "Full name",
+        "email": "Email address",
+        "enrollment_date": "Date enrolled in practical program",
+        "expiration_date": "enrollment_date + 36 months",
+        "status": "enrolled | active | tasks_complete | written_passed | oral_passed | certified | expired | withdrawn",
+        "tasks_completed": "Count of signed-off tasks (0-65)",
+        "written_exam_date": "Date written exam passed (null if not yet)",
+        "written_exam_score": "Written exam score (null if not yet)",
+        "oral_board_date": "Date of oral board (null if not yet)",
+        "oral_board_result": "qualified | not_yet_qualified | null",
+        "certificate_number": "Certificate number (null until issued)",
+        "certificate_date": "Date certificate issued (null until issued)"
+      }
+    },
+
+    "signoff": {
+      "description": "Record of a task sign-off (or reversal)",
+      "fields": {
+        "id": "Unique identifier",
+        "student_id": "FK to student",
+        "task_id": "Task ID (e.g., 1-01)",
+        "evaluator_id": "FK to evaluator who signed off",
+        "date": "Date of sign-off",
+        "result": "pass | fail",
+        "notes": "Evaluator notes (optional, free text)",
+        "status": "active | reversed",
+        "reversed_by": "FK to evaluator or admin who reversed (null if active)",
+        "reversed_date": "Date of reversal (null if active)",
+        "reversal_reason": "Reason for reversal (null if active)"
+      }
+    },
+
+    "oral_board_record": {
+      "description": "Record of an oral board examination",
+      "fields": {
+        "id": "Unique identifier",
+        "student_id": "FK to student",
+        "date": "Date of oral board",
+        "location": "Location (physical or 'remote')",
+        "board_members": "Array of board member names (3)",
+        "result": "qualified | not_yet_qualified",
+        "category_scores": "Object mapping category_id to score/notes",
+        "comments": "General comments from board",
+        "recorded_by": "FK to admin who recorded result"
+      }
+    }
+  },
+
+  "categories": [
+    {
+      "id": 1,
+      "title": "Pitot-Static & Air Data Systems",
+      "task_count": 10,
+      "test_bank_modules": [8, 9],
+      "tasks": [
+        {
+          "id": "1-01",
+          "description": "Connect pitot-static test equipment without introducing leaks",
+          "mapped_questions": [79, 80, 81]
+        },
+        {
+          "id": "1-02",
+          "description": "Perform static system leak test per Part 43 Appendix E",
+          "mapped_questions": [80, 82, 83]
+        },
+        {
+          "id": "1-03",
+          "description": "Perform pitot system operational check",
+          "mapped_questions": [96, 99, 105]
+        },
+        {
+          "id": "1-04",
+          "description": "Test altimeter at required points per Part 43 Appendix E",
+          "mapped_questions": [80, 85, 86]
+        },
+        {
+          "id": "1-05",
+          "description": "Verify altitude encoder correlation within 125 feet",
+          "mapped_questions": [90, 91, 95]
+        },
+        {
+          "id": "1-06",
+          "description": "Test pitot heat operation and current draw",
+          "mapped_questions": [101]
+        },
+        {
+          "id": "1-07",
+          "description": "Perform altimeter case leak test at 18,000 feet",
+          "mapped_questions": [85, 86]
+        },
+        {
+          "id": "1-08",
+          "description": "Isolate and repair static system leak",
+          "mapped_questions": [82, 83, 84]
+        },
+        {
+          "id": "1-09",
+          "description": "Perform RVSM certification test per approved data",
+          "mapped_questions": [87, 88, 89, 90, 91, 92, 93, 94, 95]
+        },
+        {
+          "id": "1-10",
+          "description": "Complete 91.411 documentation with all required elements",
+          "mapped_questions": [79, 161]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Surveillance Systems",
+      "task_count": 8,
+      "test_bank_modules": [12],
+      "tasks": [
+        {
+          "id": "2-01",
+          "description": "Perform transponder ground test per 91.413",
+          "mapped_questions": [153, 160]
+        },
+        {
+          "id": "2-02",
+          "description": "Verify ADS-B Out operation per 91.227",
+          "mapped_questions": [153, 156, 157]
+        },
+        {
+          "id": "2-03",
+          "description": "Test ADS-B position source and NACp value",
+          "mapped_questions": [157]
+        },
+        {
+          "id": "2-04",
+          "description": "Troubleshoot ADS-B failure with systematic approach",
+          "mapped_questions": [153, 159]
+        },
+        {
+          "id": "2-05",
+          "description": "Perform TCAS operational check",
+          "mapped_questions": [154, 155, 160]
+        },
+        {
+          "id": "2-06",
+          "description": "Explain TCAS operation and RA coordination",
+          "mapped_questions": [154, 158, 160]
+        },
+        {
+          "id": "2-07",
+          "description": "Inspect transponder/TCAS antenna installation",
+          "mapped_questions": [155]
+        },
+        {
+          "id": "2-08",
+          "description": "Complete 91.413 documentation with ADS-B compliance",
+          "mapped_questions": [156, 161]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Autopilot & Flight Control",
+      "task_count": 8,
+      "test_bank_modules": [11],
+      "tasks": [
+        {
+          "id": "3-01",
+          "description": "Perform autopilot ground check per maintenance manual",
+          "mapped_questions": [128, 133, 142]
+        },
+        {
+          "id": "3-02",
+          "description": "Test all autopilot disconnect methods",
+          "mapped_questions": [148]
+        },
+        {
+          "id": "3-03",
+          "description": "Test electric trim system including runaway protection",
+          "mapped_questions": [144, 145]
+        },
+        {
+          "id": "3-04",
+          "description": "Verify autopilot mode engagement (HDG, ALT, NAV)",
+          "mapped_questions": [135, 141, 143]
+        },
+        {
+          "id": "3-05",
+          "description": "Troubleshoot autopilot won't engage",
+          "mapped_questions": [148, 150]
+        },
+        {
+          "id": "3-06",
+          "description": "Troubleshoot autopilot oscillation in one axis",
+          "mapped_questions": [130, 149, 152]
+        },
+        {
+          "id": "3-07",
+          "description": "Explain flight director vs autopilot operation",
+          "mapped_questions": [131, 146]
+        },
+        {
+          "id": "3-08",
+          "description": "Identify autopilot system components and signal flow",
+          "mapped_questions": [128, 136, 137, 139, 140]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "FMS & Navigation",
+      "task_count": 8,
+      "test_bank_modules": [4, 7],
+      "tasks": [
+        {
+          "id": "4-01",
+          "description": "Verify FMS-to-autopilot coupling (LNAV/VNAV)",
+          "mapped_questions": [26, 28, 31]
+        },
+        {
+          "id": "4-02",
+          "description": "Verify navigation database currency",
+          "mapped_questions": [22, 32, 166]
+        },
+        {
+          "id": "4-03",
+          "description": "Load navigation database update",
+          "mapped_questions": [166, 168]
+        },
+        {
+          "id": "4-04",
+          "description": "Troubleshoot FMS position invalid",
+          "mapped_questions": [33, 29]
+        },
+        {
+          "id": "4-05",
+          "description": "Verify ARINC 429 communication with bus analyzer",
+          "mapped_questions": [23, 24, 27]
+        },
+        {
+          "id": "4-06",
+          "description": "Perform GPS receiver operational check",
+          "mapped_questions": [29, 153]
+        },
+        {
+          "id": "4-07",
+          "description": "Explain WAAS and LPV approaches",
+          "mapped_questions": [69, 76, 77]
+        },
+        {
+          "id": "4-08",
+          "description": "Identify FMS components and interfaces",
+          "mapped_questions": [19, 20, 21, 25]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Audio & Communication",
+      "task_count": 8,
+      "test_bank_modules": [6, 7],
+      "tasks": [
+        {
+          "id": "5-01",
+          "description": "Perform COM radio functional check",
+          "mapped_questions": [70, 74, 75]
+        },
+        {
+          "id": "5-02",
+          "description": "Measure antenna VSWR",
+          "mapped_questions": [74]
+        },
+        {
+          "id": "5-03",
+          "description": "Troubleshoot no transmit condition",
+          "mapped_questions": [60, 59]
+        },
+        {
+          "id": "5-04",
+          "description": "Troubleshoot no receive / weak receive",
+          "mapped_questions": [75, 61]
+        },
+        {
+          "id": "5-05",
+          "description": "Troubleshoot audio hum or noise",
+          "mapped_questions": [64]
+        },
+        {
+          "id": "5-06",
+          "description": "Test marker beacon system",
+          "mapped_questions": [62, 72]
+        },
+        {
+          "id": "5-07",
+          "description": "Troubleshoot stuck mic condition",
+          "mapped_questions": [59, 63, 66]
+        },
+        {
+          "id": "5-08",
+          "description": "Verify headset impedance compatibility",
+          "mapped_questions": [61]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Wire Harness Fabrication",
+      "task_count": 8,
+      "test_bank_modules": [10],
+      "tasks": [
+        {
+          "id": "6-01",
+          "description": "Strip wire to proper dimension without damage",
+          "mapped_questions": [112]
+        },
+        {
+          "id": "6-02",
+          "description": "Crimp terminal to specification",
+          "mapped_questions": [111, 112]
+        },
+        {
+          "id": "6-03",
+          "description": "Install connector contacts with proper seating",
+          "mapped_questions": [124]
+        },
+        {
+          "id": "6-04",
+          "description": "Install bonding jumper (<3 milliohms)",
+          "mapped_questions": [114, 115, 126]
+        },
+        {
+          "id": "6-05",
+          "description": "Route and secure wire bundle properly",
+          "mapped_questions": [113, 122, 123]
+        },
+        {
+          "id": "6-06",
+          "description": "Perform wire splice per approved methods",
+          "mapped_questions": [118]
+        },
+        {
+          "id": "6-07",
+          "description": "Apply wire identification marking per AC 43.13",
+          "mapped_questions": [119, 116]
+        },
+        {
+          "id": "6-08",
+          "description": "Troubleshoot open or short in wire harness",
+          "mapped_questions": [124, 127]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Software & Configuration",
+      "task_count": 7,
+      "test_bank_modules": [14],
+      "tasks": [
+        {
+          "id": "7-01",
+          "description": "Verify software compatibility before load",
+          "mapped_questions": [169]
+        },
+        {
+          "id": "7-02",
+          "description": "Back up configuration before update",
+          "mapped_questions": [168, 3]
+        },
+        {
+          "id": "7-03",
+          "description": "Perform software update per manufacturer procedure",
+          "mapped_questions": [167, 170]
+        },
+        {
+          "id": "7-04",
+          "description": "Recover from failed software load",
+          "mapped_questions": [167]
+        },
+        {
+          "id": "7-05",
+          "description": "Verify software configuration after load",
+          "mapped_questions": [170, 121]
+        },
+        {
+          "id": "7-06",
+          "description": "Perform operational test after update",
+          "mapped_questions": [170]
+        },
+        {
+          "id": "7-07",
+          "description": "Identify approved software configuration from documentation",
+          "mapped_questions": [169, 121]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Documentation & Compliance",
+      "task_count": 8,
+      "test_bank_modules": [13],
+      "tasks": [
+        {
+          "id": "8-01",
+          "description": "Write 91.411 logbook entry",
+          "mapped_questions": [79, 161]
+        },
+        {
+          "id": "8-02",
+          "description": "Write 91.413 logbook entry",
+          "mapped_questions": [161]
+        },
+        {
+          "id": "8-03",
+          "description": "Write installation logbook entry with approved data reference",
+          "mapped_questions": [162, 163]
+        },
+        {
+          "id": "8-04",
+          "description": "Complete FAA Form 337",
+          "mapped_questions": [163]
+        },
+        {
+          "id": "8-05",
+          "description": "Determine major vs minor alteration",
+          "mapped_questions": [163]
+        },
+        {
+          "id": "8-06",
+          "description": "Identify approved data for installation",
+          "mapped_questions": [162, 163, 164]
+        },
+        {
+          "id": "8-07",
+          "description": "Research Airworthiness Directives",
+          "mapped_questions": []
+        },
+        {
+          "id": "8-08",
+          "description": "Explain return to service authority",
+          "mapped_questions": [164]
+        }
+      ]
+    }
+  ],
+
+  "written_exam": {
+    "source": "CAET-Advanced-Complete-170-Questions.docx",
+    "total_questions": 170,
+    "modules": [
+      { "id": 1, "title": "Cabin Management Systems", "questions": "Q1-Q8", "count": 8, "practical_category": null },
+      { "id": 2, "title": "Connectivity", "questions": "Q9-Q13", "count": 5, "practical_category": null },
+      { "id": 3, "title": "Datalink Fundamentals", "questions": "Q14-Q18", "count": 5, "practical_category": null },
+      { "id": 4, "title": "Flight Management Systems", "questions": "Q19-Q36", "count": 18, "practical_category": 4 },
+      { "id": 5, "title": "Attitude & Heading Reference", "questions": "Q37-Q54", "count": 18, "practical_category": null },
+      { "id": 6, "title": "Audio Panels", "questions": "Q55-Q68", "count": 14, "practical_category": 5 },
+      { "id": 7, "title": "NAV/COM Systems", "questions": "Q69-Q78", "count": 10, "practical_category": [4, 5] },
+      { "id": 8, "title": "Pitot-Static / RVSM", "questions": "Q79-Q95", "count": 17, "practical_category": 1 },
+      { "id": 9, "title": "Smart Probes / Air Data", "questions": "Q96-Q110", "count": 15, "practical_category": 1 },
+      { "id": 10, "title": "Wire Harness Fabrication", "questions": "Q111-Q127", "count": 17, "practical_category": 6 },
+      { "id": 11, "title": "Autopilot Systems", "questions": "Q128-Q152", "count": 25, "practical_category": 3 },
+      { "id": 12, "title": "Transponders / ADS-B", "questions": "Q153-Q160", "count": 8, "practical_category": 2 },
+      { "id": 13, "title": "Documentation", "questions": "Q161-Q165", "count": 5, "practical_category": 8 },
+      { "id": 14, "title": "Software and Database Loading", "questions": "Q166-Q170", "count": 5, "practical_category": 7 }
+    ],
+    "unmapped_modules_note": "Modules 1 (Cabin Management), 2 (Connectivity), 3 (Datalink), and 5 (AHRS) are written-exam-only topics with no corresponding practical tasks. AHRS concepts support Categories 3 and 4 indirectly."
+  },
+
+  "oral_board": {
+    "description": "Final gate after written exam passed",
+    "prerequisite": "written_exam passed",
+    "board_size": 3,
+    "board_composition": "AEA Workforce Committee members",
+    "duration_minutes": 60,
+    "format": "Scenario-based questions — candidate walks through their qualification record and defends their competency",
+    "result_options": ["QUALIFIED", "NOT_YET_QUALIFIED"],
+    "reattempt_policy": "Candidate may reattempt after additional preparation period determined by board",
+
+    "question_bank": [
+      {
+        "category_id": 1,
+        "category": "Pitot-Static & Air Data Systems",
+        "questions": [
+          {
+            "id": "OB-1-01",
+            "scenario": "You just completed a 91.411 test. The altimeter reads 35 feet high at 10,000 feet. The tolerance is ±30 feet at that point. Walk me through what happens next.",
+            "evaluates": ["Tolerance awareness", "Documentation of failure", "Customer communication", "Corrective action options"],
+            "maps_to_tasks": ["1-04", "1-10"]
+          },
+          {
+            "id": "OB-1-02",
+            "scenario": "During an RVSM test, the primary altimeters pass but the standby altimeter fails RVSM tolerances. The owner insists on flying RVSM. What do you tell them?",
+            "evaluates": ["Standby tested to 91.411 not RVSM", "LOA requirements", "Regulatory knowledge", "Professional communication"],
+            "maps_to_tasks": ["1-09", "1-10"]
+          },
+          {
+            "id": "OB-1-03",
+            "scenario": "You find a static system leak during testing. You've isolated it to a fitting behind the instrument panel. Describe your repair process from start to finish.",
+            "evaluates": ["Systematic isolation", "Repair technique", "Retest requirement", "Documentation"],
+            "maps_to_tasks": ["1-08", "1-02", "1-10"]
+          }
+        ]
+      },
+      {
+        "category_id": 2,
+        "category": "Surveillance Systems",
+        "questions": [
+          {
+            "id": "OB-2-01",
+            "scenario": "After a GPS receiver replacement, ADS-B Out fails the ground test. The transponder replies are normal. Where do you start?",
+            "evaluates": ["GPS-to-ADS-B dependency", "NACp understanding", "Systematic troubleshooting", "Interface verification"],
+            "maps_to_tasks": ["2-02", "2-03", "2-04"]
+          },
+          {
+            "id": "OB-2-02",
+            "scenario": "A pilot reports TCAS targets disappear when traffic gets close. The transponder tests fine on the ramp. What's your approach?",
+            "evaluates": ["Antenna pattern understanding", "Close-range null concept", "Installation inspection", "Troubleshooting logic"],
+            "maps_to_tasks": ["2-05", "2-07"]
+          }
+        ]
+      },
+      {
+        "category_id": 3,
+        "category": "Autopilot & Flight Control",
+        "questions": [
+          {
+            "id": "OB-3-01",
+            "scenario": "After an avionics upgrade, the autopilot engages but oscillates in roll only. Pitch holds fine. Walk me through your diagnosis.",
+            "evaluates": ["Single-axis isolation", "Mechanical vs electronic check", "Gain and feedback understanding", "ARINC 429 roll steering"],
+            "maps_to_tasks": ["3-06", "3-08"]
+          },
+          {
+            "id": "OB-3-02",
+            "scenario": "The pilot says the autopilot disconnects immediately every time they try to engage. Where do you start?",
+            "evaluates": ["Engagement prerequisites", "Sensor sync concept", "Systematic approach", "Common causes"],
+            "maps_to_tasks": ["3-05", "3-04"]
+          }
+        ]
+      },
+      {
+        "category_id": 4,
+        "category": "FMS & Navigation",
+        "questions": [
+          {
+            "id": "OB-4-01",
+            "scenario": "After installing a new FMS, LNAV tracks fine but VNAV descent profiles are way off. The pilot says the FMS 'doesn't know the airplane.' What's going on?",
+            "evaluates": ["VNAV depends on aircraft performance data", "Configuration module understanding", "ADC input verification", "Installation configuration"],
+            "maps_to_tasks": ["4-01", "4-08"]
+          },
+          {
+            "id": "OB-4-02",
+            "scenario": "You need to verify ARINC 429 communication between a new GPS and the FMS. Describe what you're looking for on the bus analyzer.",
+            "evaluates": ["Label identification", "Data word interpretation", "Tx/Rx verification", "Practical tool use"],
+            "maps_to_tasks": ["4-05", "4-06"]
+          }
+        ]
+      },
+      {
+        "category_id": 5,
+        "category": "Audio & Communication",
+        "questions": [
+          {
+            "id": "OB-5-01",
+            "scenario": "ATC tells the pilot they hear carrier but no voice. The pilot can hear ATC fine. A test mic at the radio works. Trace the problem.",
+            "evaluates": ["Audio panel mic routing", "Isolation logic", "Direct-to-radio test understanding", "Systematic approach"],
+            "maps_to_tasks": ["5-03", "5-07"]
+          },
+          {
+            "id": "OB-5-02",
+            "scenario": "After an audio panel installation, both crew positions hear a 400 Hz hum in their headsets. What's your first check and why?",
+            "evaluates": ["400 Hz = aircraft AC", "Ground connection inspection", "Installation error recognition", "Frequency identification"],
+            "maps_to_tasks": ["5-05"]
+          }
+        ]
+      },
+      {
+        "category_id": 6,
+        "category": "Wire Harness Fabrication",
+        "questions": [
+          {
+            "id": "OB-6-01",
+            "scenario": "You're building a harness that routes near the magnetometer. What wire type do you use and why? What routing precautions do you take?",
+            "evaluates": ["Shielded twisted pair selection", "Magnetic field cancellation", "Routing clearances", "AC 43.13 awareness"],
+            "maps_to_tasks": ["6-05", "6-07"]
+          },
+          {
+            "id": "OB-6-02",
+            "scenario": "The engineering drawing specifies Kapton-insulated wire. The customer wants you to hot-stamp the wire identification. What do you do?",
+            "evaluates": ["Kapton arc tracking hazard", "Hot-stamp prohibition", "Alternative marking methods", "Approved data compliance"],
+            "maps_to_tasks": ["6-07"]
+          }
+        ]
+      },
+      {
+        "category_id": 7,
+        "category": "Software & Configuration",
+        "questions": [
+          {
+            "id": "OB-7-01",
+            "scenario": "You're loading a software update on a GTN 750. The load fails at 80% and shows 'INVALID'. The aircraft is due to depart in 2 hours. What do you do?",
+            "evaluates": ["Recovery procedure", "Don't panic", "Previous version retention", "Media integrity check", "Customer communication"],
+            "maps_to_tasks": ["7-03", "7-04"]
+          },
+          {
+            "id": "OB-7-02",
+            "scenario": "After a software update, you notice the display unit lost its aircraft-specific configuration. The customer didn't approve additional troubleshooting time. What happened and what do you do?",
+            "evaluates": ["Backup importance", "Configuration module understanding", "Recovery from config loss", "Documentation of error"],
+            "maps_to_tasks": ["7-02", "7-05"]
+          }
+        ]
+      },
+      {
+        "category_id": 8,
+        "category": "Documentation & Compliance",
+        "questions": [
+          {
+            "id": "OB-8-01",
+            "scenario": "You just installed a new transponder under an STC. Walk me through every piece of paperwork this job requires.",
+            "evaluates": ["Logbook entry content", "337 requirement for major alteration", "STC reference", "Weight and balance", "Return to service authority"],
+            "maps_to_tasks": ["8-03", "8-04", "8-05", "8-06"]
+          },
+          {
+            "id": "OB-8-02",
+            "scenario": "A customer brings in an aircraft for a pitot-static and transponder check. Both tests pass. Write the logbook entries — what regulation do you reference for each?",
+            "evaluates": ["91.411 vs 91.413 distinction", "Required entry elements", "Test data inclusion", "Approval statement"],
+            "maps_to_tasks": ["8-01", "8-02"]
+          },
+          {
+            "id": "OB-8-03",
+            "scenario": "Your shop wants to install a piece of equipment that doesn't have an STC for this aircraft. What are your options for approved data?",
+            "evaluates": ["Field approval process", "AC 43.13 authority and limits", "TSO understanding", "When to say 'we can't do this'"],
+            "maps_to_tasks": ["8-05", "8-06"]
+          }
+        ]
+      }
+    ]
+  },
+
+  "evaluator_training": {
+    "description": "Required training for shop evaluators before they can sign off tasks",
+    "modules": [
+      {
+        "id": "ET-01",
+        "title": "The Competency Standard",
+        "description": "Understanding what 'competent' means and the evaluation mindset",
+        "topics": [
+          "The trust question — would you put your name on this technician's work?",
+          "Competent vs proficient vs expert — we're testing competent",
+          "Observation vs testing — you watch them do it, you don't quiz them",
+          "Avoiding teaching during evaluation — evaluate first, coach after"
+        ],
+        "duration_minutes": 30,
+        "assessment": "Scenario: Given 3 evaluation descriptions, identify which demonstrate competency and which don't"
+      },
+      {
+        "id": "ET-02",
+        "title": "Using the Evaluation Guides",
+        "description": "How to apply accept/reject criteria consistently",
+        "topics": [
+          "Reading the task preparation briefs",
+          "Observable behaviors vs assumptions",
+          "Critical errors — what's an automatic not-yet",
+          "Documenting what you observe in notes"
+        ],
+        "duration_minutes": 30,
+        "assessment": "Given a task evaluation scenario, write appropriate sign-off notes"
+      },
+      {
+        "id": "ET-03",
+        "title": "Common Evaluation Pitfalls",
+        "description": "Avoiding bias and maintaining standards across candidates",
+        "topics": [
+          "Halo effect — good in one area doesn't mean good in all",
+          "Familiarity bias — your best tech still needs to demonstrate",
+          "Anchoring — first impression isn't the whole evaluation",
+          "The hardest part: saying 'not yet' to someone you know"
+        ],
+        "duration_minutes": 20,
+        "assessment": "Identify the bias in 4 evaluation scenarios"
+      },
+      {
+        "id": "ET-04",
+        "title": "Using the Digital System",
+        "description": "How to use the TMS platform for sign-offs and tracking",
+        "topics": [
+          "Logging in and finding your students",
+          "Signing off tasks — the digital work card",
+          "Writing effective sign-off notes",
+          "Reversing a sign-off — when and how"
+        ],
+        "duration_minutes": 20,
+        "assessment": "Complete a guided walkthrough of the platform"
+      },
+      {
+        "id": "ET-05",
+        "title": "Calibration Exercise",
+        "description": "Watch evaluation scenarios and score them to calibrate standards",
+        "topics": [
+          "Scenario 1: Clear competency demonstration",
+          "Scenario 2: Borderline — needed one prompt",
+          "Scenario 3: Not yet qualified — multiple errors",
+          "Discussion: Where's the line?"
+        ],
+        "duration_minutes": 30,
+        "assessment": "Score all 3 scenarios correctly with appropriate justification"
+      }
+    ],
+    "completion_requirement": "All 5 modules completed with all assessments passed",
+    "recurrent_interval_months": 24,
+    "recurrent_content": "ET-03 (pitfalls review) and ET-05 (recalibration exercise)"
+  },
+
+  "content_layers": {
+    "description": "AI-generated content that supports each task — built separately from schema but mapped here",
+    "task_prep_briefs": {
+      "description": "Student-facing preparation material for each of 65 tasks",
+      "status": "mapped_in_v1_schema",
+      "location": "Generated on demand or pre-built as HTML/Markdown"
+    },
+    "evaluator_observation_guides": {
+      "description": "Evaluator-facing guidance for what to watch during each task",
+      "status": "mapped_in_v1_schema",
+      "location": "Generated on demand or pre-built as HTML/Markdown"
+    },
+    "practice_question_sets": {
+      "description": "Test bank questions mapped to each task for student study mode",
+      "status": "mapped_questions field on each task",
+      "tracking": "Deferred to platform build"
+    }
+  },
+
+  "analytics_requirements": {
+    "admin_dashboard": [
+      "Total active shops and students",
+      "Students by status (enrolled, active, tasks_complete, written_passed, oral_passed, certified)",
+      "Average time to completion",
+      "Oral board queue (students ready for scheduling)",
+      "Evaluator training compliance across all shops",
+      "Task completion rates (which tasks are bottlenecks)",
+      "Shop activity (last sign-off date per shop)"
+    ],
+    "shop_dashboard": [
+      "Student roster with progress percentages",
+      "Sign-off queue (students requesting evaluation)",
+      "Evaluator training status for shop evaluators",
+      "Category completion rates for shop students"
+    ],
+    "student_dashboard": [
+      "Overall progress (X/65 tasks)",
+      "Category progress (8 progress bars)",
+      "Next recommended tasks",
+      "Time remaining (36-month clock)",
+      "Current certification gate status"
+    ]
+  }
+}
