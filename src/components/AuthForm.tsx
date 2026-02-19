@@ -59,22 +59,18 @@ export function AuthForm({ onSignIn, onSignUp }: AuthFormProps) {
 
   if (signUpSuccess) {
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <div style={styles.badge}>CAET Advanced</div>
-          <h1 style={styles.title}>Check Your Email</h1>
-          <p style={styles.subtitle}>
-            We sent a confirmation link to <strong>{email}</strong>. Click the
-            link to activate your account, then return here to sign in.
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+        <div className="w-full max-w-sm text-center">
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-6">CAET Advanced</p>
+          <h1 className="text-lg font-semibold text-white mb-2">Check Your Email</h1>
+          <p className="text-sm text-slate-400 mb-6">
+            We sent a confirmation link to <span className="text-slate-300">{email}</span>.
           </p>
           <button
-            onClick={() => {
-              setSignUpSuccess(false)
-              setMode('signin')
-            }}
-            style={styles.linkButton}
+            onClick={() => { setSignUpSuccess(false); setMode('signin') }}
+            className="text-sm text-emerald-500 hover:text-emerald-400 cursor-pointer"
           >
-            Back to Sign In
+            Back to sign in
           </button>
         </div>
       </div>
@@ -82,177 +78,135 @@ export function AuthForm({ onSignIn, onSignUp }: AuthFormProps) {
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={styles.badge}>CAET Advanced</div>
-        <h1 style={styles.title}>Qualification Tracker</h1>
-        <p style={styles.subtitle}>
-          65 Tasks · 8 Categories · AI-Enhanced Coaching
-        </p>
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        {/* Title */}
+        <div className="text-center mb-8">
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">CAET Advanced</p>
+          <h1 className="text-xl font-semibold text-white">Qualification Tracker</h1>
+          <p className="text-sm text-slate-500 mt-1">65 tasks · 8 categories</p>
+        </div>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <h2 style={styles.formTitle}>
-            {mode === 'signin' ? 'Sign In' : 'Create Account'}
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <h2 className="text-sm font-medium text-slate-300">
+            {mode === 'signin' ? 'Sign in' : 'Create account'}
           </h2>
 
-          {error && <div style={styles.error}>{error}</div>}
+          {error && (
+            <div className="text-sm text-red-400 bg-red-500/5 border border-red-500/10 rounded-md px-3 py-2">
+              {error}
+            </div>
+          )}
 
           {mode === 'signup' && (
-            <div style={styles.field}>
-              <label style={styles.label}>Full Name</label>
+            <div>
+              <label className="block text-xs text-slate-500 mb-1.5">Full Name</label>
               <input
                 type="text"
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
                 placeholder="Marcus Rivera"
-                style={styles.input}
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-md text-sm text-white placeholder-slate-600 outline-none focus:border-slate-700 transition-colors"
                 required
               />
             </div>
           )}
 
-          <div style={styles.field}>
-            <label style={styles.label}>Email</label>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1.5">Email</label>
             <input
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="you@example.com"
-              style={styles.input}
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-md text-sm text-white placeholder-slate-600 outline-none focus:border-slate-700 transition-colors"
               required
             />
           </div>
 
-          <div style={styles.field}>
-            <label style={styles.label}>Password</label>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1.5">Password</label>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder={
-                mode === 'signup' ? 'At least 6 characters' : 'Your password'
-              }
-              style={styles.input}
+              placeholder={mode === 'signup' ? 'At least 6 characters' : ''}
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-md text-sm text-white placeholder-slate-600 outline-none focus:border-slate-700 transition-colors"
               required
               minLength={mode === 'signup' ? 6 : undefined}
             />
           </div>
 
           {mode === 'signup' && (
-            <div style={styles.field}>
-              <label style={styles.label}>Role</label>
-              <div style={styles.roleGrid}>
-                {(
-                  [
-                    {
-                      value: 'student',
-                      label: 'Student',
-                      desc: 'Pursuing CAET Advanced qualification',
-                      color: '#10b981',
-                    },
-                    {
-                      value: 'shop_evaluator',
-                      label: 'Evaluator',
-                      desc: 'Sign off tasks at your repair station',
-                      color: '#6366f1',
-                    },
-                    {
-                      value: 'admin',
-                      label: 'Admin',
-                      desc: 'AEA program administrator',
-                      color: '#f43f5e',
-                    },
-                  ] as const
-                ).map(r => (
+            <div>
+              <label className="block text-xs text-slate-500 mb-1.5">Role</label>
+              <div className="space-y-1.5">
+                {([
+                  { value: 'student' as const, label: 'Student', desc: 'Pursuing qualification' },
+                  { value: 'shop_evaluator' as const, label: 'Evaluator', desc: 'Repair station evaluator' },
+                  { value: 'admin' as const, label: 'Admin', desc: 'Program administrator' },
+                ]).map(r => (
                   <button
                     key={r.value}
                     type="button"
                     onClick={() => setRole(r.value)}
-                    style={{
-                      ...styles.roleButton,
-                      borderColor:
-                        role === r.value ? r.color : 'rgb(51, 65, 85)',
-                      backgroundColor:
-                        role === r.value
-                          ? `${r.color}15`
-                          : 'rgb(15, 23, 42)',
-                    }}
+                    className={`w-full text-left px-3 py-2.5 rounded-md border text-sm transition-colors cursor-pointer ${
+                      role === r.value
+                        ? 'border-emerald-700/50 bg-emerald-950/20 text-white'
+                        : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700'
+                    }`}
                   >
-                    <span
-                      style={{
-                        ...styles.roleDot,
-                        backgroundColor: r.color,
-                        opacity: role === r.value ? 1 : 0.3,
-                      }}
-                    />
-                    <div>
-                      <div style={styles.roleLabel}>{r.label}</div>
-                      <div style={styles.roleDesc}>{r.desc}</div>
-                    </div>
+                    <span className="font-medium">{r.label}</span>
+                    <span className="text-slate-600 ml-2">{r.desc}</span>
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          <button type="submit" disabled={loading} style={styles.submitButton}>
-            {loading
-              ? 'Please wait...'
-              : mode === 'signin'
-                ? 'Sign In'
-                : 'Create Account'}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-md transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {loading ? 'Please wait...' : mode === 'signin' ? 'Sign in' : 'Create account'}
           </button>
         </form>
 
-        <div style={styles.switchRow}>
+        {/* Switch mode */}
+        <p className="text-center text-sm text-slate-600 mt-6">
           {mode === 'signin' ? (
             <>
-              Don't have an account?{' '}
-              <button
-                onClick={() => {
-                  setMode('signup')
-                  setError(null)
-                }}
-                style={styles.linkButton}
-              >
+              No account?{' '}
+              <button onClick={() => { setMode('signup'); setError(null) }} className="text-emerald-500 hover:text-emerald-400 cursor-pointer">
                 Create one
               </button>
             </>
           ) : (
             <>
-              Already have an account?{' '}
-              <button
-                onClick={() => {
-                  setMode('signin')
-                  setError(null)
-                }}
-                style={styles.linkButton}
-              >
+              Have an account?{' '}
+              <button onClick={() => { setMode('signin'); setError(null) }} className="text-emerald-500 hover:text-emerald-400 cursor-pointer">
                 Sign in
               </button>
             </>
           )}
-        </div>
+        </p>
 
+        {/* Demo accounts */}
         {mode === 'signin' && (
-          <div style={styles.demoSection}>
-            <div style={styles.demoLabel}>Demo Accounts</div>
-            <div style={styles.demoGrid}>
+          <div className="mt-8 pt-6 border-t border-slate-800/60">
+            <p className="text-xs text-slate-600 uppercase tracking-wider mb-3">Demo Accounts</p>
+            <div className="space-y-1.5">
               {DEMO_ACCOUNTS.map(acct => (
                 <button
                   key={acct.email}
                   type="button"
-                  onClick={() => {
-                    setEmail(acct.email)
-                    setPassword('demo')
-                    setError(null)
-                  }}
-                  style={styles.demoButton}
+                  onClick={() => { setEmail(acct.email); setPassword('demo'); setError(null) }}
+                  className="w-full text-left px-3 py-2.5 rounded-md hover:bg-slate-900 transition-colors cursor-pointer"
                 >
-                  <div style={styles.demoName}>{acct.label}</div>
-                  <div style={styles.demoMeta}>
-                    {acct.role} · {acct.company}
-                  </div>
+                  <div className="text-sm text-slate-300">{acct.label}</div>
+                  <div className="text-xs text-slate-600">{acct.role} · {acct.company}</div>
                 </button>
               ))}
             </div>
@@ -261,189 +215,4 @@ export function AuthForm({ onSignIn, onSignUp }: AuthFormProps) {
       </div>
     </div>
   )
-}
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    minHeight: '100vh',
-    backgroundColor: 'rgb(2, 6, 23)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '1rem',
-  },
-  card: {
-    maxWidth: '28rem',
-    width: '100%',
-    textAlign: 'center',
-  },
-  badge: {
-    display: 'inline-block',
-    padding: '0.375rem 1rem',
-    borderRadius: '9999px',
-    border: '1px solid rgba(16, 185, 129, 0.3)',
-    background:
-      'linear-gradient(to right, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1))',
-    color: 'rgb(52, 211, 153)',
-    fontSize: '0.875rem',
-    fontWeight: 500,
-    marginBottom: '1rem',
-  },
-  title: {
-    fontSize: '1.875rem',
-    fontWeight: 700,
-    color: 'white',
-    fontFamily: 'Georgia, serif',
-    margin: '0 0 0.5rem 0',
-  },
-  subtitle: {
-    fontSize: '0.875rem',
-    color: 'rgb(148, 163, 184)',
-    margin: '0 0 2rem 0',
-  },
-  form: {
-    backgroundColor: 'rgb(15, 23, 42)',
-    border: '1px solid rgb(30, 41, 59)',
-    borderRadius: '0.75rem',
-    padding: '1.5rem',
-    textAlign: 'left',
-  },
-  formTitle: {
-    fontSize: '1.125rem',
-    fontWeight: 600,
-    color: 'white',
-    margin: '0 0 1rem 0',
-  },
-  error: {
-    padding: '0.75rem',
-    borderRadius: '0.5rem',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    border: '1px solid rgba(239, 68, 68, 0.3)',
-    color: 'rgb(252, 165, 165)',
-    fontSize: '0.875rem',
-    marginBottom: '1rem',
-  },
-  field: {
-    marginBottom: '1rem',
-  },
-  label: {
-    display: 'block',
-    fontSize: '0.75rem',
-    fontWeight: 500,
-    color: 'rgb(148, 163, 184)',
-    marginBottom: '0.375rem',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em',
-  },
-  input: {
-    width: '100%',
-    padding: '0.625rem 0.75rem',
-    borderRadius: '0.5rem',
-    border: '1px solid rgb(51, 65, 85)',
-    backgroundColor: 'rgb(2, 6, 23)',
-    color: 'white',
-    fontSize: '0.875rem',
-    outline: 'none',
-    boxSizing: 'border-box' as const,
-  },
-  roleGrid: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '0.5rem',
-  },
-  roleButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    width: '100%',
-    padding: '0.75rem',
-    borderRadius: '0.5rem',
-    border: '1px solid rgb(51, 65, 85)',
-    backgroundColor: 'rgb(15, 23, 42)',
-    cursor: 'pointer',
-    textAlign: 'left' as const,
-    transition: 'all 0.15s',
-  },
-  roleDot: {
-    width: '0.625rem',
-    height: '0.625rem',
-    borderRadius: '9999px',
-    flexShrink: 0,
-  },
-  roleLabel: {
-    fontSize: '0.875rem',
-    fontWeight: 600,
-    color: 'white',
-  },
-  roleDesc: {
-    fontSize: '0.75rem',
-    color: 'rgb(100, 116, 139)',
-  },
-  submitButton: {
-    width: '100%',
-    padding: '0.75rem',
-    borderRadius: '0.5rem',
-    border: 'none',
-    backgroundColor: 'rgb(16, 185, 129)',
-    color: 'white',
-    fontSize: '0.875rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    marginTop: '0.5rem',
-  },
-  switchRow: {
-    marginTop: '1.5rem',
-    fontSize: '0.875rem',
-    color: 'rgb(100, 116, 139)',
-    textAlign: 'center' as const,
-  },
-  linkButton: {
-    background: 'none',
-    border: 'none',
-    color: 'rgb(52, 211, 153)',
-    cursor: 'pointer',
-    fontSize: '0.875rem',
-    fontWeight: 500,
-    padding: 0,
-  },
-  demoSection: {
-    marginTop: '2rem',
-    padding: '1rem',
-    borderRadius: '0.75rem',
-    border: '1px solid rgb(30, 41, 59)',
-    backgroundColor: 'rgb(15, 23, 42)',
-  },
-  demoLabel: {
-    fontSize: '0.625rem',
-    fontWeight: 600,
-    color: 'rgb(100, 116, 139)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.1em',
-    marginBottom: '0.75rem',
-  },
-  demoGrid: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '0.5rem',
-  },
-  demoButton: {
-    display: 'block',
-    width: '100%',
-    padding: '0.625rem 0.75rem',
-    borderRadius: '0.5rem',
-    border: '1px solid rgb(51, 65, 85)',
-    backgroundColor: 'rgb(2, 6, 23)',
-    cursor: 'pointer',
-    textAlign: 'left' as const,
-    transition: 'border-color 0.15s',
-  },
-  demoName: {
-    fontSize: '0.875rem',
-    fontWeight: 500,
-    color: 'rgb(226, 232, 240)',
-  },
-  demoMeta: {
-    fontSize: '0.75rem',
-    color: 'rgb(100, 116, 139)',
-  },
 }

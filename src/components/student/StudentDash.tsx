@@ -1,9 +1,7 @@
 import { useState } from 'react'
-import { Bar, Icons } from '../shared'
 import {
   SCHEMA,
   TOTAL_TASKS,
-  CAT_COLORS,
   findTask,
   getCategoryProgress,
   getNextRecommended,
@@ -19,29 +17,42 @@ interface StudentDashProps {
   enrollment: MockEnrollment
 }
 
-/* ── tiny helpers ─────────────────────────────────────────────────── */
+/* ── Minimal progress bar ────────────────────────────────────────── */
+function ProgressBar({ pct, h = 'h-1.5' }: { pct: number; h?: string }) {
+  return (
+    <div className={`w-full bg-slate-800 rounded-full ${h} overflow-hidden`}>
+      <div
+        className={`${h} rounded-full transition-all duration-700 ${pct === 100 ? 'bg-emerald-500' : 'bg-emerald-500/70'}`}
+        style={{ width: `${Math.min(pct, 100)}%` }}
+      />
+    </div>
+  )
+}
 
-const CAT_TEXT_COLORS = [
-  'text-sky-400',
-  'text-violet-400',
-  'text-rose-400',
-  'text-amber-400',
-  'text-emerald-400',
-  'text-orange-400',
-  'text-cyan-400',
-  'text-pink-400',
-]
+/* ── Check icon ──────────────────────────────────────────────────── */
+function Check({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+    </svg>
+  )
+}
 
-const CAT_BG_SUBTLE = [
-  'bg-sky-500/10',
-  'bg-violet-500/10',
-  'bg-rose-500/10',
-  'bg-amber-500/10',
-  'bg-emerald-500/10',
-  'bg-orange-500/10',
-  'bg-cyan-500/10',
-  'bg-pink-500/10',
-]
+function ChevronRight({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+  )
+}
+
+function ChevronDown({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  )
+}
 
 /* ── Main Component ──────────────────────────────────────────────── */
 
@@ -58,13 +69,11 @@ export function StudentDash({ profile, enrollment }: StudentDashProps) {
   const pace = getPaceAnalysis(totalDone, enrollment.start_date)
   const nextTasks = getNextRecommended(completedTaskIds, [], 3)
 
-  // Days remaining in program
   const startDate = new Date(enrollment.start_date)
   const endDate = new Date(startDate)
   endDate.setMonth(endDate.getMonth() + SCHEMA.program.time_limit_months)
   const daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
 
-  // Categories near completion for guidance
   const nearComplete = progress
     .filter(c => c.pct > 0 && c.pct < 100)
     .sort((a, b) => b.pct - a.pct)
@@ -83,353 +92,237 @@ export function StudentDash({ profile, enrollment }: StudentDashProps) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      {/* ─── COMPACT HEADER ─────────────────────────────────────── */}
-      <div className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-4 py-3">
+    <div className="min-h-screen bg-slate-950 text-slate-300">
+
+      {/* ─── HEADER ─────────────────────────────────────────────── */}
+      <header className="border-b border-slate-800/60">
+        <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {/* Avatar */}
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-white text-sm font-bold shrink-0">
-                {profile.full_name.split(' ').map(n => n[0]).join('')}
-              </div>
-              <div>
-                <h1 className="text-sm font-semibold text-white leading-tight">{profile.full_name}</h1>
-                <p className="text-xs text-slate-500">CAET Advanced Candidate</p>
-              </div>
+            <div>
+              <h1 className="text-base font-semibold text-white">{profile.full_name}</h1>
+              <p className="text-xs text-slate-500 mt-0.5">CAET Advanced Practical Qualification</p>
             </div>
-
-            {/* Tabs — centered */}
-            <div className="flex bg-slate-800/60 rounded-lg p-0.5">
-              {([['overview', 'Overview'], ['categories', 'Categories'], ['prep', 'Prep Coach']] as const).map(
-                ([v, l]) => (
-                  <button
-                    key={v}
-                    onClick={() => setView(v)}
-                    className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                      view === v
-                        ? 'bg-slate-700 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {l}
-                  </button>
-                )
-              )}
-            </div>
-
-            {/* Quick stats */}
-            <div className="flex items-center gap-5 text-right">
+            <div className="flex items-baseline gap-6 text-right">
               <div>
-                <div className="text-lg font-bold text-white leading-tight">{totalDone}<span className="text-slate-500 text-sm font-normal">/{TOTAL_TASKS}</span></div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-wider">Tasks</div>
+                <span className="text-2xl font-semibold text-white tabular-nums">{totalDone}</span>
+                <span className="text-sm text-slate-500">/{TOTAL_TASKS} tasks</span>
               </div>
               <div>
-                <div className={`text-lg font-bold leading-tight ${daysRemaining > 180 ? 'text-emerald-400' : daysRemaining > 90 ? 'text-amber-400' : 'text-rose-400'}`}>
-                  {daysRemaining}
-                </div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-wider">Days Left</div>
+                <span className={`text-2xl font-semibold tabular-nums ${daysRemaining > 180 ? 'text-white' : daysRemaining > 90 ? 'text-amber-400' : 'text-red-400'}`}>{daysRemaining}</span>
+                <span className="text-sm text-slate-500"> days left</span>
               </div>
             </div>
           </div>
 
-          {/* Slim progress bar */}
-          <div className="mt-3 flex items-center gap-3">
-            <div className="flex-1 bg-slate-800 rounded-full h-2 overflow-hidden flex">
-              {progress.map((c, i) => (
-                <div
-                  key={c.id}
-                  className={`${CAT_COLORS[i]} h-2 transition-all duration-700`}
-                  style={{ width: `${(c.done / TOTAL_TASKS) * 100}%` }}
-                  title={`${c.title}: ${c.done}/${c.total}`}
-                />
-              ))}
+          {/* Progress bar */}
+          <div className="mt-4 flex items-center gap-3">
+            <div className="flex-1">
+              <ProgressBar pct={pct} h="h-1" />
             </div>
-            <span className="text-xs font-bold text-emerald-400 w-10 text-right">{pct}%</span>
+            <span className="text-xs text-slate-500 tabular-nums w-8 text-right">{pct}%</span>
           </div>
+
+          {/* Nav */}
+          <nav className="flex gap-1 mt-4 -mb-px">
+            {([['overview', 'Overview'], ['categories', 'Categories'], ['prep', 'Prep Coach']] as const).map(
+              ([v, l]) => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={`px-3 py-2 text-sm font-medium transition-colors cursor-pointer border-b-2 ${
+                    view === v
+                      ? 'text-white border-emerald-500'
+                      : 'text-slate-500 border-transparent hover:text-slate-300'
+                  }`}
+                >
+                  {l}
+                </button>
+              )
+            )}
+          </nav>
         </div>
-      </div>
+      </header>
 
       {/* ─── CONTENT ────────────────────────────────────────────── */}
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <main className="max-w-4xl mx-auto px-6 py-8">
 
-        {/* ═══ OVERVIEW TAB ═══════════════════════════════════════ */}
+        {/* ═══ OVERVIEW ═════════════════════════════════════════ */}
         {view === 'overview' && (
-          <div className="space-y-6">
+          <div className="space-y-10">
 
-            {/* ── Row 1: Status + Certification ─────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-
-              {/* Pace status — left 3 cols */}
-              <div className={`lg:col-span-3 rounded-xl p-5 border ${
-                pace.complete
-                  ? 'border-emerald-700/40 bg-emerald-950/20'
+            {/* Status message */}
+            <section>
+              <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
+                {pace.complete
+                  ? enrollment.written_exam_date
+                    ? 'All 65 practical tasks signed off. Written exam passed. Ready for oral board scheduling.'
+                    : 'All 65 practical tasks signed off. Next step: schedule your written examination.'
                   : pace.onTrack
-                    ? 'border-emerald-700/30 bg-gradient-to-br from-slate-900 to-emerald-950/30'
-                    : 'border-amber-700/30 bg-gradient-to-br from-slate-900 to-amber-950/30'
-              }`}>
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className={`text-xs font-semibold uppercase tracking-wider mb-1 ${
-                      pace.complete ? 'text-emerald-400' : pace.onTrack ? 'text-emerald-400' : 'text-amber-400'
+                    ? `You're completing about 1 task every ${pace.pace} days. At this pace you'll finish the remaining ${pace.left} tasks in roughly ${pace.projected} days, well within your ${pace.remaining}-day window.`
+                    : `At your current pace of 1 task every ${pace.pace} days, you'll need about ${pace.projected} days to complete ${pace.left} remaining tasks — but you have ${pace.remaining} days left. Consider increasing your weekly rate.`}
+              </p>
+            </section>
+
+            {/* Certification steps */}
+            <section>
+              <h2 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-4">Certification Path</h2>
+              <div className="flex gap-3">
+                {SCHEMA.program.certification_flow.map((gate) => {
+                  const status =
+                    gate.gate === 'practical_tasks' ? (pace.complete ? 'done' : 'active')
+                    : gate.gate === 'written_exam' ? (enrollment.written_exam_date ? 'done' : pace.complete ? 'active' : 'locked')
+                    : gate.gate === 'oral_board' ? (enrollment.written_exam_date ? 'active' : 'locked')
+                    : gate.gate === 'certificate_issued' ? (enrollment.certificate_number ? 'done' : 'locked')
+                    : 'locked'
+                  const label = gate.gate === 'practical_tasks' ? '65 Tasks'
+                    : gate.gate === 'written_exam' ? 'Written Exam'
+                    : gate.gate === 'oral_board' ? 'Oral Board'
+                    : 'Certified'
+
+                  return (
+                    <div key={gate.step} className={`flex-1 rounded-lg px-4 py-3 border transition-all ${
+                      status === 'done' ? 'border-emerald-800/40 bg-emerald-950/20'
+                      : status === 'active' ? 'border-slate-700 bg-slate-900'
+                      : 'border-slate-800/40 bg-slate-900/30'
                     }`}>
-                      {pace.complete ? 'Tasks Complete' : pace.onTrack ? 'On Track' : 'Attention Needed'}
-                    </div>
-                    <div className="text-sm text-slate-300 leading-relaxed max-w-md">
-                      {pace.complete
-                        ? enrollment.written_exam_date
-                          ? 'All 65 tasks signed off. Written exam passed — ready for oral board.'
-                          : 'All 65 tasks signed off. Next step: written examination.'
-                        : pace.onTrack
-                          ? `At your current pace (1 task every ${pace.pace} days), you'll finish in ~${pace.projected} days. You have ${pace.remaining} days remaining.`
-                          : `You need ~${pace.projected} days for ${pace.left} remaining tasks but only have ${pace.remaining} days left. Consider increasing your weekly rate.`}
-                    </div>
-                  </div>
-                  {/* Large percent */}
-                  <div className={`text-4xl font-bold leading-none ${
-                    pace.complete ? 'text-emerald-400' : pace.onTrack ? 'text-emerald-400/80' : 'text-amber-400/80'
-                  }`}>
-                    {pct}%
-                  </div>
-                </div>
-
-                {/* Mini category chips */}
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {progress.map((c, i) => (
-                    <button
-                      key={c.id}
-                      onClick={() => { setExpandCat(c.id); setView('categories') }}
-                      className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs cursor-pointer transition-all hover:brightness-125 ${
-                        c.pct === 100 ? 'bg-emerald-500/15 text-emerald-400' : `${CAT_BG_SUBTLE[i]} ${CAT_TEXT_COLORS[i]}`
-                      }`}
-                    >
-                      {c.pct === 100 && <span className="text-emerald-400">{Icons.check}</span>}
-                      <span className="font-medium">{c.done}/{c.total}</span>
-                      <span className="opacity-60 hidden sm:inline">{c.title.split('&')[0].split('—')[0].trim()}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Certification path — right 2 cols */}
-              <div className="lg:col-span-2 rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-                  Certification Path
-                </div>
-                <div className="space-y-2">
-                  {SCHEMA.program.certification_flow.map((gate) => {
-                    const gateStatus =
-                      gate.gate === 'practical_tasks'
-                        ? pace.complete ? 'done' : 'active'
-                        : gate.gate === 'written_exam'
-                          ? enrollment.written_exam_date ? 'done' : pace.complete ? 'active' : 'locked'
-                          : gate.gate === 'oral_board'
-                            ? enrollment.written_exam_date ? 'active' : 'locked'
-                            : gate.gate === 'certificate_issued'
-                              ? enrollment.certificate_number ? 'done' : 'locked'
-                              : 'locked'
-                    const label = gate.gate === 'practical_tasks' ? '65 Practical Tasks'
-                      : gate.gate === 'written_exam' ? 'Written Examination'
-                      : gate.gate === 'oral_board' ? 'Oral Board Review'
-                      : 'Certification Issued'
-
-                    return (
-                      <div
-                        key={gate.step}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                          gateStatus === 'done'
-                            ? 'bg-emerald-500/10'
-                            : gateStatus === 'active'
-                              ? 'bg-cyan-500/10 border border-cyan-800/30'
-                              : 'bg-slate-800/30'
-                        }`}
-                      >
-                        {/* Step indicator */}
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                          gateStatus === 'done'
-                            ? 'bg-emerald-500 text-white'
-                            : gateStatus === 'active'
-                              ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
-                              : 'bg-slate-700/50 text-slate-600'
-                        }`}>
-                          {gateStatus === 'done' ? Icons.check : gate.step}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className={`text-sm font-medium ${
-                            gateStatus === 'done' ? 'text-emerald-400' : gateStatus === 'active' ? 'text-cyan-300' : 'text-slate-600'
-                          }`}>
-                            {label}
+                      <div className="flex items-center gap-2 mb-1">
+                        {status === 'done' ? (
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                            <Check className="w-3 h-3 text-white" />
                           </div>
-                          {gateStatus === 'active' && gate.gate === 'practical_tasks' && (
-                            <div className="text-xs text-slate-500">{pace.left} tasks remaining</div>
-                          )}
-                        </div>
+                        ) : (
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
+                            status === 'active' ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-600'
+                          }`}>
+                            {gate.step}
+                          </div>
+                        )}
+                        <span className={`text-sm font-medium ${
+                          status === 'done' ? 'text-emerald-400' : status === 'active' ? 'text-white' : 'text-slate-600'
+                        }`}>
+                          {label}
+                        </span>
                       </div>
-                    )
-                  })}
-                </div>
+                      {status === 'active' && gate.gate === 'practical_tasks' && (
+                        <p className="text-xs text-slate-500 ml-7">{pace.left} remaining</p>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-            </div>
+            </section>
 
-            {/* ── Row 2: Recommended Actions ────────────────── */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-slate-300">Up Next</h2>
-                <button
-                  onClick={() => setView('categories')}
-                  className="text-xs text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
-                >
-                  View all categories →
-                </button>
+            {/* Suggested next */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xs font-medium text-slate-500 uppercase tracking-wider">Suggested Next</h2>
+                {nearComplete.length > 0 && nearComplete[0].pct >= 60 && (
+                  <span className="text-xs text-slate-500">
+                    Category {nearComplete[0].id} is {nearComplete[0].pct}% done — {nearComplete[0].total - nearComplete[0].done} left
+                  </span>
+                )}
               </div>
-
-              {/* Near-complete nudge */}
-              {nearComplete.length > 0 && nearComplete[0].pct >= 60 && (
-                <div className="mb-3 flex items-center gap-3 bg-violet-500/8 border border-violet-800/25 rounded-lg px-4 py-3">
-                  <div className="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center shrink-0">
-                    <svg className="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                  </div>
-                  <div className="text-sm text-slate-300">
-                    <span className="text-violet-300 font-medium">Close to finishing Category {nearComplete[0].id}</span>
-                    <span className="text-slate-500"> — {nearComplete[0].title}: </span>
-                    {nearComplete[0].total - nearComplete[0].done} task{nearComplete[0].total - nearComplete[0].done !== 1 ? 's' : ''} left
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1">
                 {nextTasks.map(task => {
-                  const catIdx = progress.findIndex(c => c.id === task.catId)
-                  const catProgress = progress[catIdx]
+                  const catProgress = progress.find(c => c.id === task.catId)
                   return (
                     <button
                       key={task.id}
                       onClick={() => openPrep(task.id)}
-                      className={`text-left rounded-xl p-4 border border-slate-800 bg-slate-900/50 hover:border-slate-600 hover:bg-slate-900 transition-all cursor-pointer group`}
+                      className="w-full flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-slate-900 transition-colors cursor-pointer group text-left"
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className={`w-6 h-6 rounded-md ${CAT_COLORS[catIdx]} flex items-center justify-center text-white text-[10px] font-bold`}>
-                          {task.catId}
-                        </div>
-                        <span className="text-xs text-slate-500">{task.catTitle.split('&')[0].trim()}</span>
-                        {catProgress && (
-                          <span className="ml-auto text-[10px] text-slate-600">{catProgress.done}/{catProgress.total}</span>
-                        )}
-                      </div>
-                      <div className="text-sm text-slate-200 group-hover:text-white leading-snug mb-3">
+                      <span className="font-mono text-xs text-slate-600 w-8 shrink-0">{task.id}</span>
+                      <span className="text-sm text-slate-300 group-hover:text-white flex-1 transition-colors">
                         {task.description}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-cyan-400 group-hover:text-cyan-300">
-                        <span>Start prep</span>
-                        <svg className="w-3 h-3 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
+                      </span>
+                      {catProgress && (
+                        <span className="text-xs text-slate-600 shrink-0 tabular-nums">
+                          {catProgress.done}/{catProgress.total}
+                        </span>
+                      )}
+                      <ChevronRight className="w-4 h-4 text-slate-700 group-hover:text-slate-500 transition-colors shrink-0" />
                     </button>
                   )
                 })}
               </div>
-            </div>
+            </section>
 
-            {/* ── Row 3: All Categories ─────────────────────── */}
-            <div>
-              <h2 className="text-sm font-semibold text-slate-300 mb-3">All Categories</h2>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                {progress.map((c, i) => (
+            {/* Category grid */}
+            <section>
+              <h2 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-4">Progress by Category</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-slate-800/50 rounded-lg overflow-hidden">
+                {progress.map((c) => (
                   <button
                     key={c.id}
                     onClick={() => { setExpandCat(c.id); setView('categories') }}
-                    className="text-left rounded-lg p-3 border border-slate-800/60 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-900/70 transition-all cursor-pointer group"
+                    className="bg-slate-950 px-4 py-4 text-left hover:bg-slate-900/80 transition-colors cursor-pointer"
                   >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className={`text-xs font-bold ${c.pct === 100 ? 'text-emerald-400' : CAT_TEXT_COLORS[i]}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-slate-300 font-medium">{c.title}</span>
+                      <span className={`text-xs tabular-nums font-medium ${c.pct === 100 ? 'text-emerald-500' : 'text-slate-500'}`}>
                         {c.done}/{c.total}
-                      </div>
-                      {c.pct === 100 && <span className="text-emerald-400">{Icons.check}</span>}
+                      </span>
                     </div>
-                    <div className="text-xs text-slate-400 font-medium leading-tight mb-2 group-hover:text-slate-300 transition-colors">
-                      {c.title}
-                    </div>
-                    <Bar
-                      pct={c.pct}
-                      color={c.pct === 100 ? 'bg-emerald-500' : CAT_COLORS[i]}
-                      showPct={false}
-                      h="h-1.5"
-                    />
+                    <ProgressBar pct={c.pct} h="h-1" />
                   </button>
                 ))}
               </div>
-            </div>
+            </section>
           </div>
         )}
 
-        {/* ═══ CATEGORIES TAB ════════════════════════════════════ */}
+        {/* ═══ CATEGORIES ═══════════════════════════════════════ */}
         {view === 'categories' && (
-          <div className="space-y-2">
-            {progress.map((cat, i) => (
-              <div key={cat.id} className="rounded-xl border border-slate-800/60 bg-slate-900/40 overflow-hidden">
+          <div className="space-y-1">
+            {progress.map((cat) => (
+              <div key={cat.id} className="rounded-lg overflow-hidden">
                 <button
                   onClick={() => setExpandCat(expandCat === cat.id ? null : cat.id)}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-slate-800/30 transition-all cursor-pointer"
+                  className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-slate-900 transition-colors cursor-pointer"
                 >
-                  <div className={`w-9 h-9 rounded-lg ${CAT_COLORS[i]} flex items-center justify-center text-white text-xs font-bold shrink-0`}>
-                    {cat.id}
-                  </div>
-                  <div className="flex-1 text-left min-w-0">
-                    <div className="text-sm text-white font-medium">{cat.title}</div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex-1 bg-slate-800 rounded-full h-1.5 overflow-hidden max-w-48">
-                        <div
-                          className={`${cat.pct === 100 ? 'bg-emerald-500' : CAT_COLORS[i]} h-1.5 rounded-full transition-all duration-700`}
-                          style={{ width: `${cat.pct}%` }}
-                        />
-                      </div>
-                      <span className={`text-xs font-medium ${cat.pct === 100 ? 'text-emerald-400' : 'text-slate-500'}`}>
-                        {cat.done}/{cat.total}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-slate-600 transition-transform">
-                    {expandCat === cat.id ? Icons.down : Icons.right}
+                  <span className={`text-xs font-medium tabular-nums w-10 shrink-0 ${cat.pct === 100 ? 'text-emerald-500' : 'text-slate-500'}`}>
+                    {cat.done}/{cat.total}
                   </span>
+                  <span className="text-sm text-white font-medium flex-1 text-left">{cat.title}</span>
+                  <div className="w-24 shrink-0">
+                    <ProgressBar pct={cat.pct} h="h-1" />
+                  </div>
+                  {expandCat === cat.id
+                    ? <ChevronDown className="w-4 h-4 text-slate-600 shrink-0" />
+                    : <ChevronRight className="w-4 h-4 text-slate-600 shrink-0" />
+                  }
                 </button>
 
                 {expandCat === cat.id && (
-                  <div className="border-t border-slate-800/50 px-3 pb-3 pt-1">
+                  <div className="pb-2">
                     {cat.tasks.map(task => {
                       const done = completedTaskIds.includes(task.id)
                       return (
                         <div
                           key={task.id}
-                          className={`flex items-center justify-between py-2.5 px-3 rounded-lg mt-1 ${
-                            done ? 'bg-emerald-500/5' : 'hover:bg-slate-800/40'
-                          } transition-all`}
+                          className={`flex items-center gap-4 px-4 py-2.5 ml-4 ${
+                            done ? '' : 'hover:bg-slate-900/50'
+                          } transition-colors rounded-md`}
                         >
-                          <div className="flex items-center gap-3 min-w-0">
-                            {done ? (
-                              <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                                <span className="text-emerald-400 scale-75">{Icons.check}</span>
-                              </div>
-                            ) : (
-                              <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center shrink-0">
-                                <div className="w-2 h-2 rounded-full bg-slate-600" />
-                              </div>
-                            )}
-                            <span className={`font-mono text-xs w-9 shrink-0 ${done ? 'text-slate-600' : 'text-slate-500'}`}>
-                              {task.id}
-                            </span>
-                            <span className={`text-sm truncate ${done ? 'text-slate-600' : 'text-slate-300'}`}>
-                              {task.description}
-                            </span>
-                          </div>
+                          {done ? (
+                            <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                              <Check className="w-3 h-3 text-emerald-500" />
+                            </div>
+                          ) : (
+                            <div className="w-5 h-5 rounded-full border border-slate-700 shrink-0" />
+                          )}
+                          <span className={`font-mono text-xs w-9 shrink-0 ${done ? 'text-slate-700' : 'text-slate-600'}`}>
+                            {task.id}
+                          </span>
+                          <span className={`text-sm flex-1 ${done ? 'text-slate-600' : 'text-slate-300'}`}>
+                            {task.description}
+                          </span>
                           {!done && (
                             <button
                               onClick={(e) => { e.stopPropagation(); openPrep(task.id) }}
-                              className="text-xs text-cyan-400 hover:text-cyan-300 px-3 py-1 rounded-md bg-cyan-500/10 hover:bg-cyan-500/15 transition-all shrink-0 ml-2 cursor-pointer"
+                              className="text-xs text-emerald-500 hover:text-emerald-400 transition-colors cursor-pointer shrink-0"
                             >
-                              Prep
+                              Prepare →
                             </button>
                           )}
                         </div>
@@ -442,21 +335,20 @@ export function StudentDash({ profile, enrollment }: StudentDashProps) {
           </div>
         )}
 
-        {/* ═══ PREP COACH TAB ════════════════════════════════════ */}
+        {/* ═══ PREP COACH ═══════════════════════════════════════ */}
         {view === 'prep' && (
           <div>
             <button
               onClick={() => setView('overview')}
-              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 mb-4 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 mb-6 transition-colors cursor-pointer"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Overview
+              Back
             </button>
 
             {prepTask && prepContent ? (() => {
-              // Build checklist items
               const studyItems = [
                 ...prepContent.prep_topics.map((t, i) => ({ key: `prep-${i}`, label: t })),
                 ...(prepContent.study_guide || []).map((s, i) => ({ key: `study-${i}`, label: s })),
@@ -466,222 +358,164 @@ export function StudentDash({ profile, enrollment }: StudentDashProps) {
               const checkedCount = allItems.filter(item => prepChecklist[item.key]).length
               const allChecked = checkedCount === allItems.length
               const readinessPct = Math.round((checkedCount / allItems.length) * 100)
-              const catIdx = progress.findIndex(c => c.id === prepTask.catId)
 
               return (
-                <div className="space-y-4">
-                  {/* Task Header */}
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${CAT_COLORS[catIdx]} text-white`}>
-                        Cat {prepTask.catId}
-                      </div>
-                      <span className="text-xs text-slate-500">{prepTask.catTitle}</span>
-                    </div>
-                    <h2 className="text-xl font-bold text-white leading-snug">
-                      <span className="text-emerald-400 font-mono mr-2 text-lg">{prepTask.id}</span>
+                <div className="space-y-8">
+                  {/* Title */}
+                  <div>
+                    <p className="text-xs text-slate-500 mb-1">
+                      Category {prepTask.catId} · {prepTask.catTitle}
+                    </p>
+                    <h2 className="text-xl font-semibold text-white leading-snug">
                       {prepTask.description}
                     </h2>
-                    {prepTask.mapped_questions.length > 0 && (
-                      <div className="mt-2 text-xs text-slate-500">
-                        {prepTask.mapped_questions.length} practice questions mapped to this task
-                      </div>
-                    )}
+                    <p className="font-mono text-xs text-slate-600 mt-1">{prepTask.id}</p>
+                  </div>
 
-                    {/* Readiness bar */}
-                    <div className="mt-4 pt-4 border-t border-slate-800/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-slate-400">Readiness</span>
-                        <span className={`text-xs font-bold ${allChecked ? 'text-emerald-400' : 'text-slate-500'}`}>
-                          {checkedCount}/{allItems.length}
-                        </span>
-                      </div>
-                      <Bar
-                        pct={readinessPct}
-                        color={allChecked ? 'bg-emerald-500' : readinessPct > 50 ? 'bg-cyan-500' : 'bg-slate-600'}
-                        h="h-1.5"
-                        showPct={false}
-                      />
-                      {allChecked && (
-                        <div className="mt-3 flex items-center gap-2 text-sm text-emerald-400">
-                          <span className="text-emerald-400">{Icons.check}</span>
-                          <span className="font-medium">Ready for evaluation — request a sign-off from your evaluator.</span>
-                        </div>
-                      )}
+                  {/* Readiness */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-slate-500">Readiness</span>
+                      <span className={`text-xs tabular-nums ${allChecked ? 'text-emerald-500 font-medium' : 'text-slate-600'}`}>
+                        {checkedCount} of {allItems.length}
+                      </span>
                     </div>
+                    <ProgressBar pct={readinessPct} h="h-1" />
+                    {allChecked && (
+                      <p className="text-sm text-emerald-500 mt-3">
+                        You've reviewed everything. Request a sign-off from your evaluator when ready.
+                      </p>
+                    )}
                   </div>
 
                   {/* Overview */}
                   {prepContent.overview && (
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-                      <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Overview</h3>
+                    <div>
+                      <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">Overview</h3>
                       <p className="text-sm text-slate-300 leading-relaxed">
                         {prepContent.overview}
                       </p>
                     </div>
                   )}
 
-                  {/* Two-column layout for Study + Evaluator */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Study Guide */}
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-                      <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                        Study Guide
-                      </h3>
-                      <p className="text-xs text-slate-600 mb-3">
-                        Check off topics as you study them.
-                      </p>
-                      <div className="space-y-0.5">
-                        {studyItems.map(item => (
-                          <button
-                            key={item.key}
-                            onClick={() => toggleCheckItem(item.key)}
-                            className="w-full flex items-start gap-2.5 py-2 px-2 rounded-lg hover:bg-slate-800/40 text-left transition-all cursor-pointer"
-                          >
-                            <div className={`w-4 h-4 rounded border mt-0.5 flex items-center justify-center shrink-0 transition-all ${
-                              prepChecklist[item.key]
-                                ? 'bg-emerald-500 border-emerald-500'
-                                : 'border-slate-600 bg-slate-800'
-                            }`}>
-                              {prepChecklist[item.key] && (
-                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                            </div>
-                            <span className={`text-sm leading-relaxed ${prepChecklist[item.key] ? 'text-slate-500' : 'text-slate-300'}`}>
-                              {item.label}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Evaluator Criteria */}
-                    <div className="rounded-xl border border-cyan-800/25 bg-cyan-950/10 p-5">
-                      <h3 className="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-1">
-                        Evaluator Criteria
-                      </h3>
-                      <p className="text-xs text-slate-600 mb-3">
-                        Your evaluator will verify each of these.
-                      </p>
-                      <div className="space-y-0.5">
-                        {demoItems.map(item => (
-                          <button
-                            key={item.key}
-                            onClick={() => toggleCheckItem(item.key)}
-                            className="w-full flex items-start gap-2.5 py-2 px-2 rounded-lg hover:bg-slate-800/40 text-left transition-all cursor-pointer"
-                          >
-                            <div className={`w-4 h-4 rounded border mt-0.5 flex items-center justify-center shrink-0 transition-all ${
-                              prepChecklist[item.key]
-                                ? 'bg-cyan-500 border-cyan-500'
-                                : 'border-slate-600 bg-slate-800'
-                            }`}>
-                              {prepChecklist[item.key] && (
-                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                            </div>
-                            <span className={`text-sm leading-relaxed ${prepChecklist[item.key] ? 'text-slate-500' : 'text-slate-300'}`}>
-                              {item.label}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
+                  {/* Study Guide */}
+                  <div>
+                    <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Study Guide</h3>
+                    <p className="text-xs text-slate-600 mb-3">Check off items as you study.</p>
+                    <div className="space-y-px">
+                      {studyItems.map(item => (
+                        <button
+                          key={item.key}
+                          onClick={() => toggleCheckItem(item.key)}
+                          className="w-full flex items-start gap-3 py-2.5 px-3 rounded-md hover:bg-slate-900 text-left transition-colors cursor-pointer"
+                        >
+                          <div className={`w-4 h-4 rounded border mt-0.5 flex items-center justify-center shrink-0 transition-all ${
+                            prepChecklist[item.key]
+                              ? 'bg-emerald-500 border-emerald-500'
+                              : 'border-slate-700'
+                          }`}>
+                            {prepChecklist[item.key] && <Check className="w-2.5 h-2.5 text-white" />}
+                          </div>
+                          <span className={`text-sm leading-relaxed ${prepChecklist[item.key] ? 'text-slate-600' : 'text-slate-300'}`}>
+                            {item.label}
+                          </span>
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Pro Tips + Common Mistakes side by side */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Pro Tips */}
-                    {prepContent.pro_tips && prepContent.pro_tips.length > 0 && (
-                      <div className="rounded-xl border border-violet-800/25 bg-violet-950/10 p-5">
-                        <h3 className="text-xs font-semibold text-violet-400 uppercase tracking-wider mb-3">
-                          Pro Tips
-                        </h3>
-                        <ul className="space-y-3">
-                          {prepContent.pro_tips.map((tip, i) => (
-                            <li key={i} className="flex items-start gap-2.5">
-                              <svg className="w-4 h-4 text-violet-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                              </svg>
-                              <span className="text-sm text-slate-300 leading-relaxed">{tip}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                  {/* Evaluator Criteria */}
+                  <div>
+                    <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">What the Evaluator Checks</h3>
+                    <p className="text-xs text-slate-600 mb-3">You must demonstrate each of these.</p>
+                    <div className="space-y-px">
+                      {demoItems.map(item => (
+                        <button
+                          key={item.key}
+                          onClick={() => toggleCheckItem(item.key)}
+                          className="w-full flex items-start gap-3 py-2.5 px-3 rounded-md hover:bg-slate-900 text-left transition-colors cursor-pointer"
+                        >
+                          <div className={`w-4 h-4 rounded border mt-0.5 flex items-center justify-center shrink-0 transition-all ${
+                            prepChecklist[item.key]
+                              ? 'bg-emerald-500 border-emerald-500'
+                              : 'border-slate-700'
+                          }`}>
+                            {prepChecklist[item.key] && <Check className="w-2.5 h-2.5 text-white" />}
+                          </div>
+                          <span className={`text-sm leading-relaxed ${prepChecklist[item.key] ? 'text-slate-600' : 'text-slate-300'}`}>
+                            {item.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-                    {/* Common Mistakes */}
-                    <div className="rounded-xl border border-amber-800/25 bg-amber-950/10 p-5">
-                      <h3 className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3">
-                        Common Mistakes
-                      </h3>
-                      <ul className="space-y-3">
-                        {prepContent.common_errors.map((e, i) => (
-                          <li key={i} className="flex items-start gap-2.5">
-                            <svg className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                            <span className="text-sm text-slate-300 leading-relaxed">{e}</span>
-                          </li>
+                  {/* Pro Tips */}
+                  {prepContent.pro_tips && prepContent.pro_tips.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">Pro Tips</h3>
+                      <div className="space-y-3">
+                        {prepContent.pro_tips.map((tip, i) => (
+                          <p key={i} className="text-sm text-slate-400 leading-relaxed pl-4 border-l-2 border-slate-800">
+                            {tip}
+                          </p>
                         ))}
-                      </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Common Mistakes */}
+                  <div>
+                    <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">Common Mistakes</h3>
+                    <div className="space-y-2">
+                      {prepContent.common_errors.map((e, i) => (
+                        <div key={i} className="flex items-start gap-2.5 text-sm">
+                          <span className="text-amber-500 mt-0.5 shrink-0">×</span>
+                          <span className="text-slate-400 leading-relaxed">{e}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
                   {/* References */}
                   {((prepContent.references && prepContent.references.length > 0) || prepTask.mapped_questions.length > 0) && (
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-                      <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                        References & Resources
-                      </h3>
+                    <div>
+                      <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">References</h3>
                       <div className="space-y-1.5">
                         {prepContent.references?.map((ref, i) => (
-                          <div key={i} className="flex items-start gap-2.5 text-sm text-slate-400 py-1.5">
-                            <svg className="w-3.5 h-3.5 text-cyan-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                            </svg>
-                            <span className="leading-relaxed">{ref}</span>
-                          </div>
+                          <p key={i} className="text-xs text-slate-500 leading-relaxed">
+                            {ref}
+                          </p>
                         ))}
                         {prepTask.mapped_questions.length > 0 && (
-                          <div className="flex items-start gap-2.5 text-sm text-slate-400 py-1.5">
-                            <svg className="w-3.5 h-3.5 text-cyan-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span className="leading-relaxed">
-                              {prepTask.mapped_questions.length} practice questions (Q#{prepTask.mapped_questions.join(', #')})
-                            </span>
-                          </div>
+                          <p className="text-xs text-slate-500">
+                            {prepTask.mapped_questions.length} practice questions (Q#{prepTask.mapped_questions.join(', #')})
+                          </p>
                         )}
                       </div>
                     </div>
                   )}
 
-                  {/* Competency Standard */}
-                  <div className="text-xs text-slate-600 text-center py-2">
-                    Standard: "{SCHEMA.program.competency_standard}"
-                  </div>
+                  {/* Standard */}
+                  <p className="text-xs text-slate-700 pt-4 border-t border-slate-900">
+                    Competency standard: {SCHEMA.program.competency_standard}
+                  </p>
                 </div>
               )
             })() : (
-              <div className="text-center py-16">
-                <div className="w-12 h-12 rounded-full bg-slate-800 mx-auto mb-4 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
-                </div>
-                <div className="text-sm text-slate-400 mb-1">Select a task to start preparing</div>
-                <div className="text-xs text-slate-600">
-                  Choose from <button onClick={() => setView('categories')} className="text-cyan-500 hover:text-cyan-400 cursor-pointer">Categories</button> or your recommended tasks in <button onClick={() => setView('overview')} className="text-cyan-500 hover:text-cyan-400 cursor-pointer">Overview</button>.
-                </div>
+              <div className="py-20 text-center">
+                <p className="text-sm text-slate-500 mb-1">No task selected</p>
+                <p className="text-xs text-slate-600">
+                  Pick a task from{' '}
+                  <button onClick={() => setView('categories')} className="text-emerald-500 hover:text-emerald-400 cursor-pointer">Categories</button>
+                  {' '}or{' '}
+                  <button onClick={() => setView('overview')} className="text-emerald-500 hover:text-emerald-400 cursor-pointer">Overview</button>.
+                </p>
               </div>
             )}
           </div>
         )}
-      </div>
+      </main>
     </div>
   )
 }
