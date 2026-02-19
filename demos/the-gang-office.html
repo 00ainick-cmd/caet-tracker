@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Gang Office — Macrodata Refinement, Paddy's Pub Division</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--sev-bg:#0a0f1a;--sev-panel:#111827;--sev-border:#1e3a5f;--sev-text:#c8d6e5;
+--sev-accent:#3b82f6;--sev-green:#10b981;--sev-red:#ef4444;--sev-yellow:#f59e0b;
+--pub-brown:#8b6914;--pub-yellow:#d4a017;--pub-green:#2d5016;--pub-neon:#00ff88;
+--pub-grime:#3d2b0f;
+}
+body{background:var(--sev-bg);color:var(--sev-text);font-family:'Courier New',monospace;overflow-x:hidden;min-height:100vh}
+/* TOP STATS BAR */
+.stats-bar{background:var(--sev-panel);border-bottom:1px solid var(--sev-border);padding:8px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:12px;font-size:12px;position:sticky;top:0;z-index:100}
+.stats-bar .dept{color:var(--sev-accent);font-weight:bold;letter-spacing:1px;text-transform:uppercase;font-size:11px}
+.stats-bar .stat{background:#0d1525;padding:4px 10px;border:1px solid var(--sev-border);border-radius:3px}
+.stats-bar .stat span{color:var(--sev-accent)}
+.stats-bar .clock{margin-left:auto;color:var(--pub-yellow);font-size:13px}
+
+/* MAIN LAYOUT */
+.main-container{display:flex;min-height:calc(100vh - 45px)}
+.office-floor{flex:1;position:relative;min-height:600px;background:var(--sev-bg);overflow:hidden}
+.detail-panel{width:0;overflow:hidden;transition:width .3s ease;background:var(--sev-panel);border-left:2px solid var(--sev-border);flex-shrink:0}
+.detail-panel.open{width:340px}
+.detail-panel-inner{width:340px;padding:20px;height:100%;overflow-y:auto}
+
+/* FLOOR PATTERN */
+.floor-tiles{position:absolute;inset:0;background:
+  repeating-linear-gradient(0deg,transparent,transparent 39px,#131d30 39px,#131d30 40px),
+  repeating-linear-gradient(90deg,transparent,transparent 39px,#131d30 39px,#131d30 40px);
+opacity:.4;pointer-events:none}
+
+/* DEPARTMENT SIGN */
+.dept-sign{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:#0d1525;border:2px solid var(--sev-border);padding:8px 24px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--sev-accent);text-align:center;z-index:10;white-space:nowrap}
+
+/* NEON SIGN */
+.neon-sign{position:absolute;top:15px;right:20px;cursor:pointer;z-index:10;padding:8px 14px;font-size:16px;font-weight:bold;color:var(--pub-neon);text-shadow:0 0 8px var(--pub-neon),0 0 20px var(--pub-neon),0 0 40px #00cc66;animation:neonFlicker 3s infinite;border:2px solid var(--pub-neon);border-radius:4px;background:rgba(0,0,0,.6);user-select:none}
+@keyframes neonFlicker{0%,93%,100%{opacity:1}94%{opacity:.3}95%{opacity:1}96%{opacity:.5}97%{opacity:1}}
+
+/* BAR COUNTER */
+.bar-counter{position:absolute;top:0;right:0;width:120px;height:100%;background:linear-gradient(180deg,var(--pub-grime),#2a1f08);border-left:4px solid var(--pub-brown);z-index:1}
+.bar-taps{position:absolute;top:80px;right:15px;z-index:2}
+.tap{width:8px;height:24px;background:#888;border-radius:2px 2px 0 0;display:inline-block;margin:0 4px;position:relative}
+.tap::after{content:'';position:absolute;bottom:-4px;left:1px;width:6px;height:4px;background:#666;border-radius:0 0 2px 2px}
+
+/* ELEVATOR */
+.elevator{position:absolute;bottom:15px;left:15px;width:60px;height:80px;background:#1a2744;border:2px solid #2a3f66;z-index:5;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.elevator::before{content:'';position:absolute;top:0;left:50%;width:2px;height:100%;background:#2a3f66;transform:translateX(-1px)}
+.elevator-label{position:absolute;top:-16px;font-size:8px;color:#4a6fa5;letter-spacing:1px;text-transform:uppercase}
+.elevator-msg{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#0d1525;border:3px solid var(--sev-red);color:var(--sev-red);padding:30px 40px;font-size:14px;letter-spacing:2px;text-transform:uppercase;z-index:200;text-align:center;animation:alertPulse 1s ease}
+.elevator-msg.show{display:block}
+@keyframes alertPulse{0%{transform:translate(-50%,-50%) scale(.8);opacity:0}50%{transform:translate(-50%,-50%) scale(1.05)}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+
+/* MOTIVATIONAL POSTERS */
+.poster{position:absolute;z-index:2;background:#1a1a2e;border:1px solid #333;padding:4px 8px;font-size:7px;color:#aaa;text-align:center;max-width:70px;line-height:1.3;letter-spacing:.5px;text-transform:uppercase}
+.poster:nth-child(1){top:60px;left:20px}
+.poster:nth-child(2){top:60px;left:200px}
+.poster:nth-child(3){top:200px;left:15px}
+
+/* CUBICLE SYSTEM */
+.cubicle{position:absolute;z-index:5;cursor:pointer;transition:filter .2s}
+.cubicle:hover{filter:brightness(1.3)}
+.cubicle:hover .cubicle-glow{opacity:1}
+.cubicle-glow{position:absolute;inset:-4px;border:2px solid var(--sev-accent);border-radius:4px;opacity:0;transition:opacity .2s;pointer-events:none}
+.cubicle-walls{position:relative}
+.cubicle-name{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--sev-accent);white-space:nowrap;opacity:0;transition:opacity .2s}
+.cubicle:hover .cubicle-name{opacity:1}
+
+/* DESK */
+.desk{width:80px;height:50px;background:#1e293b;border:2px solid #334155;border-radius:2px;position:relative}
+.screen{position:absolute;top:4px;left:50%;transform:translateX(-50%);width:20px;height:14px;background:#0f172a;border:1px solid #475569;border-radius:1px}
+.screen.on{background:#1a365d;box-shadow:0 0 6px rgba(59,130,246,.4)}
+.screen.on::after{content:'';position:absolute;inset:2px;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(59,130,246,.1) 2px,rgba(59,130,246,.1) 3px)}
+
+/* PIXEL CHARACTERS */
+.character{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);image-rendering:pixelated}
+
+/* Dennis - center, styled hair, smug */
+.char-dennis{width:24px;height:32px;position:relative}
+.char-dennis .head{width:12px;height:12px;background:#f4c898;position:absolute;top:0;left:6px;border-radius:1px}
+.char-dennis .hair{width:14px;height:5px;background:#3d2b1f;position:absolute;top:-2px;left:5px;border-radius:2px 2px 0 0}
+.char-dennis .body{width:16px;height:12px;background:#1e40af;position:absolute;top:11px;left:4px;border-radius:1px}
+.char-dennis .legs{width:12px;height:8px;background:#1e3a5f;position:absolute;top:22px;left:6px}
+.char-dennis .mirror{width:6px;height:8px;background:#94a3b8;border:1px solid #cbd5e1;position:absolute;top:2px;right:-20px;border-radius:1px}
+.char-dennis .mirror::after{content:'';position:absolute;inset:1px;background:linear-gradient(135deg,#e2e8f0,#94a3b8)}
+
+/* Charlie - wild hair, messy */
+.char-charlie{width:24px;height:30px;position:relative}
+.char-charlie .head{width:12px;height:11px;background:#f4c898;position:absolute;top:2px;left:6px;border-radius:1px}
+.char-charlie .hair{width:18px;height:8px;background:#5c3d0e;position:absolute;top:-2px;left:3px;border-radius:3px 4px 1px 2px}
+.char-charlie .body{width:14px;height:11px;background:#6b7280;position:absolute;top:12px;left:5px}
+.char-charlie .legs{width:10px;height:7px;background:#3f3f46;position:absolute;top:22px;left:7px}
+.char-charlie .rat{width:8px;height:5px;background:#4a4a4a;position:absolute;bottom:-10px;right:-15px;border-radius:2px;animation:ratMove 8s ease-in-out infinite}
+.char-charlie .rat::after{content:'';width:10px;height:1px;background:#4a4a4a;position:absolute;right:-10px;top:2px}
+@keyframes ratMove{0%,100%{transform:translateX(0)}30%{transform:translateX(-10px)}60%{transform:translateX(5px)}}
+
+/* Dee - long neck, bird-like */
+.char-dee{width:24px;height:34px;position:relative;transition:all .3s}
+.char-dee .head{width:10px;height:10px;background:#f4c898;position:absolute;top:0;left:7px;border-radius:1px}
+.char-dee .hair{width:12px;height:7px;background:#e6c642;position:absolute;top:-2px;left:6px;border-radius:2px 2px 0 0}
+.char-dee .neck{width:4px;height:6px;background:#f4c898;position:absolute;top:9px;left:10px}
+.char-dee .body{width:14px;height:11px;background:#be185d;position:absolute;top:14px;left:5px}
+.char-dee .legs{width:10px;height:8px;background:#1e293b;position:absolute;top:24px;left:7px}
+.cubicle:hover .char-dee .head,.cubicle:hover .char-dee .hair,.cubicle:hover .char-dee .neck{opacity:0;transition:opacity .15s}
+.cubicle:hover .char-dee::before{content:'';position:absolute;top:-2px;left:4px;width:16px;height:20px;background:#1a1a2e;clip-path:polygon(50% 0%,0% 60%,20% 60%,20% 100%,40% 80%,60% 80%,80% 100%,80% 60%,100% 60%);transition:opacity .15s;opacity:1}
+.char-dee::before{opacity:0}
+
+/* Mac - buff, sleeveless */
+.char-mac{width:26px;height:32px;position:relative}
+.char-mac .head{width:12px;height:11px;background:#f4c898;position:absolute;top:0;left:7px;border-radius:1px}
+.char-mac .hair{width:13px;height:5px;background:#1a1a1a;position:absolute;top:-1px;left:6px;border-radius:2px 2px 0 0}
+.char-mac .body{width:20px;height:13px;background:#1a1a1a;position:absolute;top:10px;left:3px;border-radius:2px}
+.char-mac .arms{width:26px;height:6px;background:#f4c898;position:absolute;top:12px;left:0}
+.char-mac .legs{width:12px;height:8px;background:#374151;position:absolute;top:22px;left:7px}
+.char-mac .cross{position:absolute;top:2px;right:-18px;color:#d4a017;font-size:14px}
+
+/* Frank - short, bald, chaotic */
+.char-frank{width:22px;height:24px;position:relative}
+.char-frank .head{width:12px;height:10px;background:#f4c898;position:absolute;top:0;left:5px;border-radius:2px}
+.char-frank .glasses{width:14px;height:4px;border:1px solid #666;position:absolute;top:3px;left:4px;border-radius:1px;background:rgba(100,100,100,.2)}
+.char-frank .body{width:16px;height:9px;background:#4a1a6b;position:absolute;top:9px;left:3px}
+.char-frank .legs{width:10px;height:5px;background:#1e293b;position:absolute;top:17px;left:6px}
+.char-frank .gun{width:10px;height:4px;background:#555;position:absolute;top:6px;left:-14px;border-radius:1px}
+.char-frank .egg{width:6px;height:7px;background:#f5f0dc;position:absolute;top:4px;right:-12px;border-radius:50%}
+
+/* STATUS INDICATORS */
+.status-dot{width:8px;height:8px;border-radius:50%;position:absolute;top:-4px;right:-4px;z-index:2}
+.status-dot.working{background:var(--sev-green);animation:pulse 1.5s infinite}
+.status-dot.idle{background:var(--sev-yellow)}
+.status-dot.completed{background:var(--sev-accent)}
+.status-dot.error{background:var(--sev-red);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* IDLE ANIMATION */
+@keyframes idleBob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-2px)}}
+.anim-idle .character{animation:idleBob 2.5s ease-in-out infinite}
+
+/* TYPING ANIMATION */
+@keyframes typing{0%,100%{transform:translateX(-50%) translateY(0)}25%{transform:translateX(-50%) translateY(-1px) rotate(-1deg)}75%{transform:translateX(-50%) translateY(-1px) rotate(1deg)}}
+.anim-working .character{animation:typing .4s ease-in-out infinite}
+
+/* COMPLETED */
+@keyframes celebrate{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-6px)}}
+.anim-completed .character{animation:celebrate .8s ease-in-out infinite}
+
+/* ERROR */
+.anim-error .character{transform:translateX(-50%) translateY(4px) rotate(15deg) !important;animation:none !important}
+
+/* COFFEE STEAM */
+.coffee{position:absolute;bottom:22px;right:2px;width:6px;height:6px;background:#8b6914;border-radius:0 0 1px 1px}
+.steam{position:absolute;bottom:28px;right:3px;width:2px;height:8px;opacity:.4}
+.steam::before,.steam::after{content:'';position:absolute;width:2px;height:4px;background:#94a3b8;border-radius:50%;animation:steamRise 2s ease-in-out infinite}
+.steam::after{animation-delay:1s;left:2px}
+@keyframes steamRise{0%{transform:translateY(0);opacity:.6}100%{transform:translateY(-8px);opacity:0}}
+
+/* FLUORESCENT LIGHT FLICKER */
+.fluoro{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;animation:fluoroFlicker 6s infinite}
+@keyframes fluoroFlicker{0%,100%{opacity:0}48%{opacity:0}48.5%{opacity:.03}49%{opacity:0}73%{opacity:0}73.2%{opacity:.02}73.4%{opacity:0}}
+
+/* DETAIL PANEL */
+.detail-panel h2{color:var(--sev-accent);font-size:16px;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+.detail-panel .role{color:#6b7280;font-size:11px;margin-bottom:12px}
+.detail-panel .model-tag{display:inline-block;background:#1a365d;color:var(--sev-accent);padding:2px 8px;border-radius:2px;font-size:10px;margin-bottom:12px}
+.detail-panel .quote{font-style:italic;color:var(--pub-yellow);border-left:2px solid var(--pub-yellow);padding-left:10px;margin:12px 0;font-size:12px;line-height:1.4}
+.progress-bar{width:100%;height:6px;background:#0d1525;border:1px solid var(--sev-border);border-radius:2px;margin:6px 0;overflow:hidden}
+.progress-fill{height:100%;background:var(--sev-green);transition:width .5s}
+.task-label{font-size:11px;color:#94a3b8;margin-bottom:2px}
+.status-badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:10px;font-weight:bold;letter-spacing:1px;text-transform:uppercase}
+.status-badge.working{background:rgba(16,185,129,.15);color:var(--sev-green);border:1px solid var(--sev-green)}
+.status-badge.idle{background:rgba(245,158,11,.15);color:var(--sev-yellow);border:1px solid var(--sev-yellow)}
+.status-badge.completed{background:rgba(59,130,246,.15);color:var(--sev-accent);border:1px solid var(--sev-accent)}
+.status-badge.error{background:rgba(239,68,68,.15);color:var(--sev-red);border:1px solid var(--sev-red)}
+.recent-list{margin:12px 0;font-size:11px}
+.recent-list li{padding:3px 0;border-bottom:1px solid #1a2744;list-style:none;color:#6b7280}
+.recent-list .time{color:#475569;font-size:9px}
+.rpg-stats{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:12px 0}
+.rpg-stat{background:#0d1525;padding:4px 8px;border:1px solid var(--sev-border);border-radius:2px;font-size:10px}
+.rpg-stat .label{color:#6b7280}
+.rpg-stat .val{color:var(--sev-accent);float:right;font-weight:bold}
+.close-panel{position:absolute;top:10px;right:10px;background:none;border:1px solid #475569;color:#94a3b8;width:24px;height:24px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:2px}
+
+/* ACTIVITY FEED */
+.activity-feed{position:fixed;bottom:0;left:0;right:0;height:120px;background:var(--sev-panel);border-top:2px solid var(--sev-border);z-index:90;overflow:hidden;font-size:11px}
+.feed-header{padding:4px 12px;background:#0d1525;color:var(--sev-accent);font-size:10px;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--sev-border)}
+.feed-entries{padding:4px 12px;height:calc(100% - 24px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:#1e3a5f transparent}
+.feed-entry{padding:2px 0;border-bottom:1px solid #111827;color:#94a3b8;line-height:1.4}
+.feed-entry .ftime{color:#475569;font-size:9px;margin-right:6px}
+
+/* NIGHTMAN COMETH OVERLAY */
+.nightman-overlay{display:none;position:fixed;inset:0;background:#000;z-index:300;align-items:center;justify-content:center;flex-direction:column}
+.nightman-overlay.show{display:flex}
+.nightman-overlay h1{font-size:48px;color:var(--pub-yellow);text-shadow:0 0 30px var(--pub-yellow);animation:nightmanIn 2s ease;letter-spacing:4px}
+.nightman-overlay p{color:#888;font-size:14px;margin-top:10px;letter-spacing:6px;text-transform:uppercase}
+@keyframes nightmanIn{0%{opacity:0;transform:scale(.5)}50%{opacity:1;transform:scale(1.1)}100%{transform:scale(1)}}
+
+/* WILDCARD OVERLAY */
+.wildcard-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:300;align-items:center;justify-content:center}
+.wildcard-overlay.show{display:flex}
+.wildcard-overlay h1{font-size:42px;color:var(--sev-red);animation:wildcardShake .1s infinite;letter-spacing:3px}
+@keyframes wildcardShake{0%{transform:translate(-2px,1px)}50%{transform:translate(2px,-1px)}100%{transform:translate(-1px,2px)}}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+.main-container{flex-direction:column}
+.office-floor{min-height:500px}
+.detail-panel.open{width:100%;height:300px;border-left:none;border-top:2px solid var(--sev-border)}
+.detail-panel-inner{width:100%}
+.bar-counter{width:60px}
+.stats-bar{font-size:10px;gap:6px}
+.activity-feed{height:90px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP STATS BAR -->
+<div class="stats-bar">
+  <div class="dept">⬡ Macrodata Refinement — Paddy's Pub Division</div>
+  <div class="stat">Agents Online: <span id="agentsOnline">5/5</span></div>
+  <div class="stat">Tasks Today: <span id="tasksToday">12</span></div>
+  <div class="stat">Power Level: <span id="powerLevel">87%</span></div>
+  <div class="stat">AEA Convention: <span id="countdown">—</span></div>
+  <div class="clock" id="clock">--:--:--</div>
+</div>
+
+<!-- MAIN AREA -->
+<div class="main-container">
+  <div class="office-floor" id="officeFloor">
+    <div class="floor-tiles"></div>
+    <div class="fluoro"></div>
+
+    <!-- DEPARTMENT SIGN -->
+    <div class="dept-sign">⬡ MACRODATA REFINEMENT — PADDY'S PUB DIVISION ⬡</div>
+
+    <!-- NEON SIGN -->
+    <div class="neon-sign" id="neonSign">PADDY'S PUB</div>
+
+    <!-- POSTERS -->
+    <div class="poster">"I Am a Golden God"</div>
+    <div class="poster">"The D.E.N.N.I.S. System"</div>
+    <div class="poster">"Because of the Implication"</div>
+
+    <!-- BAR COUNTER -->
+    <div class="bar-counter"></div>
+    <div class="bar-taps">
+      <div class="tap"></div><div class="tap"></div><div class="tap"></div>
+    </div>
+
+    <!-- ELEVATOR -->
+    <div class="elevator" id="elevator">
+      <span class="elevator-label">ELEVATOR</span>
+      <span style="color:#2a3f66;font-size:20px">⬡</span>
+    </div>
+
+    <!-- DENNIS - Center -->
+    <div class="cubicle anim-completed" id="cub-dennis" data-agent="dennis" style="left:calc(50% - 55px);top:180px">
+      <div class="cubicle-glow"></div>
+      <div class="status-dot completed"></div>
+      <div class="desk">
+        <div class="screen on"></div>
+        <div class="coffee"></div><div class="steam"></div>
+        <div class="character char-dennis">
+          <div class="hair"></div><div class="head"></div><div class="body"></div><div class="legs"></div><div class="mirror"></div>
+        </div>
+      </div>
+      <div class="cubicle-name">Dennis</div>
+    </div>
+
+    <!-- CHARLIE - Corner -->
+    <div class="cubicle anim-working" id="cub-charlie" data-agent="charlie" style="left:50px;top:300px">
+      <div class="cubicle-glow"></div>
+      <div class="status-dot working"></div>
+      <div class="desk">
+        <div class="screen on"></div>
+        <div class="character char-charlie">
+          <div class="hair"></div><div class="head"></div><div class="body"></div><div class="legs"></div><div class="rat"></div>
+        </div>
+      </div>
+      <div class="cubicle-name">Charlie</div>
+    </div>
+
+    <!-- DEE - Near bar -->
+    <div class="cubicle anim-working" id="cub-dee" data-agent="dee" style="right:140px;top:160px">
+      <div class="cubicle-glow"></div>
+      <div class="status-dot working"></div>
+      <div class="desk">
+        <div class="screen on"></div>
+        <div class="character char-dee">
+          <div class="hair"></div><div class="head"></div><div class="neck"></div><div class="body"></div><div class="legs"></div>
+        </div>
+      </div>
+      <div class="cubicle-name">Dee</div>
+    </div>
+
+    <!-- MAC - Near Dennis -->
+    <div class="cubicle anim-idle" id="cub-mac" data-agent="mac" style="left:calc(50% - 140px);top:120px">
+      <div class="cubicle-glow"></div>
+      <div class="status-dot idle"></div>
+      <div class="desk">
+        <div class="screen on"></div>
+        <div class="character char-mac">
+          <div class="hair"></div><div class="head"></div><div class="arms"></div><div class="body"></div><div class="legs"></div><div class="cross">✝</div>
+        </div>
+      </div>
+      <div class="cubicle-name">Mac</div>
+    </div>
+
+    <!-- FRANK - No cubicle walls, small -->
+    <div class="cubicle anim-working" id="cub-frank" data-agent="frank" style="left:200px;top:350px">
+      <div class="cubicle-glow"></div>
+      <div class="status-dot working"></div>
+      <div class="desk" style="width:65px;height:40px">
+        <div class="screen on"></div>
+        <div class="character char-frank">
+          <div class="head"></div><div class="glasses"></div><div class="body"></div><div class="legs"></div><div class="gun"></div><div class="egg"></div>
+        </div>
+      </div>
+      <div class="cubicle-name">Frank</div>
+    </div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-panel-inner" id="detailContent">
+      <button class="close-panel" id="closePanel">×</button>
+    </div>
+  </div>
+</div>
+
+<!-- ACTIVITY FEED -->
+<div class="activity-feed">
+  <div class="feed-header">▸ SYSTEM ACTIVITY LOG</div>
+  <div class="feed-entries" id="feedEntries"></div>
+</div>
+
+<!-- OVERLAYS -->
+<div class="elevator-msg" id="elevatorMsg">⚠ YOU ARE NOT AUTHORIZED<br>TO LEAVE THE SEVERED FLOOR ⚠</div>
+<div class="nightman-overlay" id="nightmanOverlay">
+  <h1>THE NIGHTMAN COMETH</h1>
+  <p>A musical by Charlie Kelly</p>
+</div>
+<div class="wildcard-overlay" id="wildcardOverlay">
+  <h1>🪑 WILDCARD, BITCHES! 🪑</h1>
+</div>
+
+<script>
+// AGENT DATA
+const agents = {
+  dennis: {
+    name: 'Dennis Reynolds', role: 'Strategy, Triage, QC', model: 'Opus 4.6',
+    status: 'completed', task: 'Reviewing Mission Control v2 QC', progress: 100,
+    quote: '"I haven\'t even begun to peak. And when I do peak, you\'ll know. Because I\'m gonna peak so hard that everybody in Philadelphia\'s gonna feel it."',
+    recent: [
+      { task: 'Morning Briefing Delivery', time: '07:12 AM' },
+      { task: 'Agent Quality Review Cycle', time: '06:45 AM' },
+      { task: 'Council State Update', time: '06:30 AM' }
+    ],
+    stats: { STR: 7, INT: 18, WIS: 6, CHA: 20, DEX: 9, CON: 5 }
+  },
+  charlie: {
+    name: 'Charlie Kelly', role: 'CAET Content & Training', model: 'Sonnet 4.5',
+    status: 'working', task: 'Building Module 7 Question Bank', progress: 67,
+    quote: '"So do. So do. The thing is... is that... I have a great understanding of the training materials even though I can\'t read good."',
+    recent: [
+      { task: 'Module 6 Rubric Finalization', time: '04:22 PM' },
+      { task: 'PQS Qual Card Templates', time: '01:15 PM' },
+      { task: 'Bench Track Assessment Draft', time: '11:30 AM' }
+    ],
+    stats: { STR: 8, INT: 14, WIS: 11, CHA: 6, DEX: 12, CON: 18 }
+  },
+  dee: {
+    name: 'Sweet Dee Reynolds', role: 'Marketing & Voice', model: 'Haiku 4.5',
+    status: 'working', task: 'Drafting Convention LinkedIn Campaign', progress: 42,
+    quote: '"I\'m not a bird! I\'m crafting compelling brand narratives that drive engagement across multiple channels."',
+    recent: [
+      { task: 'StoryBrand Positioning Draft', time: '03:50 PM' },
+      { task: 'CAET Email Sequence v2', time: '12:20 PM' },
+      { task: 'Booth Signage Copy', time: '09:45 AM' }
+    ],
+    stats: { STR: 5, INT: 13, WIS: 10, CHA: 8, DEX: 11, CON: 7 }
+  },
+  mac: {
+    name: 'Ronald "Mac" McDonald', role: 'Communications', model: 'Haiku 4.5',
+    status: 'idle', task: 'Following up with PIA meeting contacts', progress: 0,
+    quote: '"I\'m going to roundhouse kick these emails into submission. Also, have you accepted the Lord as your savior?"',
+    recent: [
+      { task: 'Partnership Follow-up Emails', time: '02:30 PM' },
+      { task: 'Prospect Outreach Batch', time: '10:00 AM' },
+      { task: 'AEA Attendee Contact Prep', time: '08:15 AM' }
+    ],
+    stats: { STR: 16, INT: 8, WIS: 5, CHA: 12, DEX: 14, CON: 15 }
+  },
+  frank: {
+    name: 'Frank Reynolds', role: 'Research & Intel', model: 'Haiku 4.5',
+    status: 'working', task: 'FAA Regulatory Change Monitoring', progress: 89,
+    quote: '"I don\'t know how many years on this earth I got left. I\'m gonna get real weird with this research."',
+    recent: [
+      { task: 'Competitor Booth Analysis', time: '04:00 PM' },
+      { task: 'Funding Finder Source Verify', time: '01:45 PM' },
+      { task: 'Apprenticeship Grant Scan', time: '09:20 AM' }
+    ],
+    stats: { STR: 4, INT: 15, WIS: 14, CHA: 3, DEX: 6, CON: 9 }
+  }
+};
+
+// CLOCK
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', { hour12: true, timeZone: 'America/Chicago' });
+  // Convention countdown (AEA 2026 - approximate March date)
+  const convention = new Date('2026-03-18T08:00:00-05:00');
+  const diff = convention - now;
+  if (diff > 0) {
+    const days = Math.floor(diff / 86400000);
+    document.getElementById('countdown').textContent = days + 'd';
+  } else {
+    document.getElementById('countdown').textContent = 'NOW';
+  }
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// DETAIL PANEL
+const detailPanel = document.getElementById('detailPanel');
+const detailContent = document.getElementById('detailContent');
+
+document.querySelectorAll('.cubicle').forEach(cub => {
+  cub.addEventListener('click', () => {
+    const id = cub.dataset.agent;
+    const a = agents[id];
+    detailContent.innerHTML = `
+      <button class="close-panel" onclick="detailPanel.classList.remove('open')">×</button>
+      <h2>${a.name}</h2>
+      <div class="role">${a.role}</div>
+      <div class="model-tag">${a.model}</div>
+      <div style="margin:10px 0">
+        <span class="status-badge ${a.status}">${a.status}</span>
+      </div>
+      <div class="task-label">Current Task:</div>
+      <div style="font-size:12px;color:#e2e8f0;margin-bottom:4px">${a.task}</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${a.progress}%"></div></div>
+      <div style="font-size:10px;color:#6b7280;margin-bottom:12px">${a.progress}% complete</div>
+      <div class="quote">${a.quote}</div>
+      <div style="font-size:11px;color:var(--sev-accent);margin:12px 0 6px;letter-spacing:1px">RECENT COMPLETIONS</div>
+      <ul class="recent-list">${a.recent.map(r => `<li>${r.task} <span class="time">${r.time}</span></li>`).join('')}</ul>
+      <div style="font-size:11px;color:var(--sev-accent);margin:12px 0 6px;letter-spacing:1px">AGENT STATS</div>
+      <div class="rpg-stats">${Object.entries(a.stats).map(([k,v]) => `<div class="rpg-stat"><span class="label">${k}</span><span class="val">${v}</span></div>`).join('')}</div>
+    `;
+    detailPanel.classList.add('open');
+  });
+});
+
+document.getElementById('closePanel')?.addEventListener('click', () => detailPanel.classList.remove('open'));
+
+// ELEVATOR
+document.getElementById('elevator').addEventListener('click', () => {
+  const msg = document.getElementById('elevatorMsg');
+  msg.classList.add('show');
+  setTimeout(() => msg.classList.remove('show'), 3000);
+});
+
+// NEON SIGN - NIGHTMAN
+document.getElementById('neonSign').addEventListener('click', () => {
+  const ov = document.getElementById('nightmanOverlay');
+  ov.classList.add('show');
+  setTimeout(() => ov.classList.remove('show'), 4000);
+});
+
+// KONAMI CODE
+let konamiSeq = [];
+const konamiCode = [38,38,40,40,37,39,37,39,66,65];
+document.addEventListener('keydown', e => {
+  konamiSeq.push(e.keyCode);
+  if (konamiSeq.length > 10) konamiSeq.shift();
+  if (konamiSeq.join(',') === konamiCode.join(',')) {
+    const ov = document.getElementById('wildcardOverlay');
+    ov.classList.add('show');
+    setTimeout(() => ov.classList.remove('show'), 3000);
+    konamiSeq = [];
+  }
+});
+
+// ACTIVITY FEED
+const feedData = [
+  '✅ Dennis completed: Mission Control v2 QC Review',
+  '🔨 Charlie started: Module 7 Question Bank (CAET)',
+  '📝 Dee working: Convention LinkedIn Campaign Draft',
+  '⏳ Mac queued: PIA Meeting Contact Follow-ups',
+  '🔍 Frank working: FAA Regulatory Change Monitoring',
+  '✅ Charlie completed: Module 6 Rubric Finalization',
+  '✅ Dee completed: StoryBrand Positioning Draft',
+  '📊 Dennis: Council State Updated — all agents reporting',
+  '🔍 Frank completed: Competitor Booth Analysis for AEA Convention',
+  '✅ Mac completed: Partnership Follow-up Email Batch',
+  '⚠️ Frank warning: Funding Finder source URL returned 403',
+  '🔨 Charlie started: PQS Qual Card Template Build',
+  '✅ Dennis completed: Morning Briefing Delivery to Nick',
+  '📝 Dee working: CAET Email Marketing Sequence v2',
+  '🔍 Frank completed: Apprenticeship Grant Source Scan',
+  '✅ Mac completed: AEA Attendee Contact Database Prep',
+  '📊 Dennis: Quality Review — Charlie Module 6 APPROVED first pass',
+  '⚠️ Dee revision: Booth signage copy — Dennis flagged tone issues',
+  '✅ Charlie completed: Bench Track Assessment Draft',
+  '🔨 Frank started: Weekly Research Cycle — Aviation Maintenance Intel'
+];
+
+const feedEl = document.getElementById('feedEntries');
+let feedIndex = 0;
+
+function addFeedEntry() {
+  const now = new Date();
+  const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Chicago' });
+  const entry = document.createElement('div');
+  entry.className = 'feed-entry';
+  entry.innerHTML = `<span class="ftime">${time}</span>${feedData[feedIndex % feedData.length]}`;
+  feedEl.appendChild(entry);
+  feedEl.scrollTop = feedEl.scrollHeight;
+  feedIndex++;
+}
+
+// Seed initial entries
+for (let i = 0; i < 8; i++) addFeedEntry();
+setInterval(addFeedEntry, 12000);
+
+// PROGRESS SIMULATION
+setInterval(() => {
+  Object.keys(agents).forEach(id => {
+    const a = agents[id];
+    if (a.status === 'working' && a.progress < 100) {
+      a.progress = Math.min(100, a.progress + Math.random() * 2);
+      if (a.progress >= 100) {
+        a.status = 'completed';
+        const cub = document.getElementById('cub-' + id);
+        cub.className = cub.className.replace(/anim-\w+/, 'anim-completed');
+        cub.querySelector('.status-dot').className = 'status-dot completed';
+      }
+    }
+  });
+}, 5000);
+</script>
+</body>
+</html>
